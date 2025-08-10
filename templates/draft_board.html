@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Football Draft Board</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .draft-board {
+            font-size: 0.8rem;
+            margin: 10px 0;
+        }
+        
+        .team-column {
+            min-width: 120px;
+            border: 1px solid #ddd;
+            background: #f8f9fa;
+        }
+        
+        .team-header {
+            background: #007bff;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .pick-slot {
+            min-height: 40px;
+            border-bottom: 1px solid #eee;
+            padding: 4px;
+            position: relative;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .pick-slot:hover {
+            background: #f0f8ff;
+        }
+        
+        .pick-slot.current-pick {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { background-color: #fff3cd; }
+            50% { background-color: #fffacd; }
+            100% { background-color: #fff3cd; }
+        }
+        
+        .pick-slot.user-team {
+            background: #e3f2fd;
+        }
+        
+        .pick-slot.user-team.current-pick {
+            background: #bbdefb;
+            border-color: #2196f3;
+        }
+        
+        .pick-number {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 0.7rem;
+            color: #666;
+            font-weight: bold;
+        }
+        
+        .drafted-player {
+            font-weight: bold;
+            color: #333;
+            font-size: 0.85rem;
+            line-height: 1.2;
+        }
+        
+        .player-position {
+            color: #666;
+            font-size: 0.7rem;
+        }
+        
+        .available-players {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            background: white;
+        }
+        
+        .player-item {
+            padding: 6px 10px;
+            border-bottom: 1px solid #eee;
+            cursor: grab;
+            background: white;
+            transition: all 0.2s;
+        }
+        
+        .player-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .player-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        
+        .player-item .player-name {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .player-item .player-details {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .adp-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+        }
+        
+        .value-indicator {
+            background: #dc3545;
+            color: white;
+            font-size: 0.7rem;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-left: 5px;
+        }
+        
+        .recommendations-panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .rec-item {
+            background: white;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .rec-item.value-pick {
+            border-left-color: #dc3545;
+        }
+        
+        .rec-item.likely-pick {
+            border-left-color: #ffc107;
+        }
+        
+        .drop-zone {
+            min-height: 40px;
+            border: 2px dashed transparent;
+            transition: all 0.3s;
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #007bff;
+            background: #e3f2fd;
+        }
+        
+        .position-QB { color: #dc3545; }
+        .position-RB { color: #28a745; }
+        .position-WR { color: #007bff; }
+        .position-TE { color: #ffc107; }
+        .position-K { color: #6c757d; }
+        .position-DST { color: #6f42c1; }
+        
+        .draft-controls {
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Draft Controls -->
+        <div class="draft-controls">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <h4 class="mb-0"><i class="fas fa-chess-board"></i> Draft Board</h4>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <span class="me-3">Pick: <span id="currentPickNumber" class="fw-bold text-primary">1</span></span>
+                        <span class="me-3">Round: <span id="currentRound" class="fw-bold">1</span></span>
+                        <button class="btn btn-success btn-sm me-2" onclick="startNewDraft()">
+                            <i class="fas fa-play"></i> New Draft
+                        </button>
+                        <button class="btn btn-warning btn-sm me-2" onclick="undoLastPick()">
+                            <i class="fas fa-undo"></i> Undo
+                        </button>
+                        <button class="btn btn-info btn-sm" onclick="toggleRecommendations()">
+                            <i class="fas fa-lightbulb"></i> <span id="recToggleText">Show</span> Recommendations
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-3 text-end">
+                    <a href="/" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-table"></i> Back to Rankings
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Available Players -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-users"></i> Available Players (ADP Order)</h6>
+                        <small class="text-muted">All positions sorted by overall Average Draft Position</small>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="available-players" id="availablePlayers">
+                            <!-- Players will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Draft Board -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-chess-board"></i> Draft Board</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <div id="draftBoard" class="draft-board">
+                                <!-- Draft board will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recommendations -->
+            <div class="col-md-3">
+                <div id="recommendationsPanel" style="display: none;">
+                    <div class="recommendations-panel">
+                        <h6><i class="fas fa-star"></i> Recommendations</h6>
+                        <div id="recommendationsContent">
+                            <!-- Recommendations will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentDraftSession = null;
+        let currentPick = 1;
+        let teamCount = 12;
+        let userDraftPosition = 6;
+        let availablePlayers = [];
+        let draftPicks = [];
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            startNewDraft();
+        });
+        
+        function startNewDraft() {
+            // Create new draft session
+            const sessionData = {
+                session_name: `Draft ${new Date().toLocaleDateString()}`,
+                team_count: teamCount,
+                user_draft_position: userDraftPosition,
+                draft_format: 'standard'
+            };
+            
+            fetch('/api/draft/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sessionData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    currentDraftSession = result.session_id;
+                    currentPick = 1;
+                    draftPicks = [];
+                    
+                    initializeDraftBoard();
+                    loadAvailablePlayers();
+                    updateDraftStatus();
+                    
+                    showMessage('New draft started!', 'success');
+                } else {
+                    showMessage('Error starting draft', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Error starting draft', 'error');
+                console.error('Error:', error);
+            });
+        }
+        
+        function initializeDraftBoard() {
+            const board = document.getElementById('draftBoard');
+            let html = '<div class="d-flex">';
+            
+            for (let team = 1; team <= teamCount; team++) {
+                const isUserTeam = team === userDraftPosition;
+                html += `<div class="team-column">`;
+                html += `<div class="team-header ${isUserTeam ? 'bg-primary' : 'bg-secondary'}">`;
+                html += `Team ${team}${isUserTeam ? ' (YOU)' : ''}`;
+                html += `</div>`;
+                
+                // Add pick slots for each round (16 rounds typical)
+                for (let round = 1; round <= 16; round++) {
+                    const pickNumber = calculatePickNumber(round, team);
+                    const isCurrentPick = pickNumber === currentPick;
+                    const slotClass = `pick-slot drop-zone ${isUserTeam ? 'user-team' : ''} ${isCurrentPick ? 'current-pick' : ''}`;
+                    
+                    html += `<div class="${slotClass}" data-pick="${pickNumber}" data-team="${team}" data-round="${round}">`;
+                    html += `<div class="pick-number">${pickNumber}</div>`;
+                    html += `<div class="pick-content" id="pick-${pickNumber}">`;
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+                
+                html += `</div>`;
+            }
+            
+            html += '</div>';
+            board.innerHTML = html;
+            
+            // Add drop event listeners
+            setupDropZones();
+        }
+        
+        function calculatePickNumber(round, team) {
+            // Snake draft calculation
+            if (round % 2 === 1) {
+                // Odd rounds: 1, 2, 3, ..., 12
+                return (round - 1) * teamCount + team;
+            } else {
+                // Even rounds: 12, 11, 10, ..., 1
+                return (round - 1) * teamCount + (teamCount - team + 1);
+            }
+        }
+        
+        function loadAvailablePlayers() {
+            if (!currentDraftSession) return;
+            
+            // Load all available players sorted by ADP
+            fetch(`/api/draft/available-players/${currentDraftSession}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        availablePlayers = data.players;
+                        renderAvailablePlayers();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading available players:', error);
+                });
+            
+            // Load recommendations separately
+            fetch(`/api/draft/recommendations/${currentDraftSession}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderRecommendations(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading recommendations:', error);
+                });
+        }
+        
+        function renderAvailablePlayers() {
+            const container = document.getElementById('availablePlayers');
+            let html = '';
+            
+            availablePlayers.forEach(player => {
+                const isPastADP = currentPick > player.adp;
+                const valueIndicator = isPastADP ? `<span class="value-indicator">+${currentPick - player.adp}</span>` : '';
+                
+                html += `
+                    <div class="player-item" draggable="true" data-player-id="${player.player_id}">
+                        <div class="player-name position-${player.position}">
+                            ${player.name}
+                            <span class="adp-badge badge bg-secondary">ADP ${player.adp}</span>
+                            ${valueIndicator}
+                        </div>
+                        <div class="player-details">
+                            ${player.position} - ${player.team}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            setupDragEvents();
+        }
+        
+        function renderRecommendations(data) {
+            const container = document.getElementById('recommendationsContent');
+            let html = '';
+            
+            // Our recommendations
+            if (data.our_recommendations && data.our_recommendations.length > 0) {
+                html += '<h6><i class="fas fa-star text-warning"></i> Our Top Picks</h6>';
+                data.our_recommendations.slice(0, 3).forEach(rec => {
+                    html += `
+                        <div class="rec-item">
+                            <div class="fw-bold">${rec.name} (${rec.position})</div>
+                            <div class="small text-muted">${rec.reasoning}</div>
+                        </div>
+                    `;
+                });
+            }
+            
+            // ADP Values
+            if (data.adp_value_picks && data.adp_value_picks.length > 0) {
+                html += '<h6 class="mt-3"><i class="fas fa-gem text-danger"></i> Value Picks</h6>';
+                data.adp_value_picks.slice(0, 3).forEach(val => {
+                    html += `
+                        <div class="rec-item value-pick">
+                            <div class="fw-bold">${val.name} (${val.position})</div>
+                            <div class="small text-muted">${val.value_reason}</div>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Likely next picks
+            if (data.likely_next_picks && data.likely_next_picks.length > 0) {
+                html += '<h6 class="mt-3"><i class="fas fa-clock text-warning"></i> Likely Next</h6>';
+                data.likely_next_picks.slice(0, 3).forEach(likely => {
+                    html += `
+                        <div class="rec-item likely-pick">
+                            <div class="fw-bold">${likely.name} (${likely.position})</div>
+                            <div class="small text-muted">ADP ${likely.adp} - ${likely.likelihood} likelihood</div>
+                        </div>
+                    `;
+                });
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function setupDragEvents() {
+            const playerItems = document.querySelectorAll('.player-item');
+            
+            playerItems.forEach(item => {
+                item.addEventListener('dragstart', function(e) {
+                    this.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', this.dataset.playerId);
+                });
+                
+                item.addEventListener('dragend', function(e) {
+                    this.classList.remove('dragging');
+                });
+            });
+        }
+        
+        function setupDropZones() {
+            const dropZones = document.querySelectorAll('.drop-zone');
+            
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    this.classList.add('drag-over');
+                });
+                
+                zone.addEventListener('dragleave', function(e) {
+                    this.classList.remove('drag-over');
+                });
+                
+                zone.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    
+                    const playerId = e.dataTransfer.getData('text/plain');
+                    const pickNumber = parseInt(this.dataset.pick);
+                    const teamNumber = parseInt(this.dataset.team);
+                    
+                    if (pickNumber === currentPick) {
+                        draftPlayer(playerId, pickNumber, teamNumber);
+                    } else {
+                        showMessage('Can only draft to current pick', 'error');
+                    }
+                });
+            });
+        }
+        
+        function draftPlayer(playerId, pickNumber, teamNumber) {
+            const player = availablePlayers.find(p => p.player_id == playerId);
+            if (!player) return;
+            
+            const pickData = {
+                session_id: currentDraftSession,
+                player_id: parseInt(playerId),
+                pick_number: pickNumber,
+                round_number: Math.ceil(pickNumber / teamCount),
+                pick_in_round: ((pickNumber - 1) % teamCount) + 1,
+                team_number: teamNumber,
+                is_user_pick: teamNumber === userDraftPosition
+            };
+            
+            fetch('/api/draft/pick', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pickData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Update UI
+                    const pickSlot = document.getElementById(`pick-${pickNumber}`);
+                    pickSlot.innerHTML = `
+                        <div class="drafted-player">${player.name}</div>
+                        <div class="player-position position-${player.position}">${player.position} - ${player.team}</div>
+                    `;
+                    
+                    // Remove player from available list
+                    availablePlayers = availablePlayers.filter(p => p.player_id != playerId);
+                    
+                    // Update current pick
+                    currentPick++;
+                    updateDraftStatus();
+                    updateCurrentPickHighlight();
+                    
+                    // Refresh data
+                    renderAvailablePlayers();
+                    loadAvailablePlayers();
+                    
+                    showMessage(`Drafted ${player.name}!`, 'success');
+                } else {
+                    showMessage('Error drafting player', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Error drafting player', 'error');
+                console.error('Error:', error);
+            });
+        }
+        
+        function updateDraftStatus() {
+            document.getElementById('currentPickNumber').textContent = currentPick;
+            document.getElementById('currentRound').textContent = Math.ceil(currentPick / teamCount);
+        }
+        
+        function updateCurrentPickHighlight() {
+            // Remove current-pick class from all slots
+            document.querySelectorAll('.pick-slot').forEach(slot => {
+                slot.classList.remove('current-pick');
+            });
+            
+            // Add to current pick
+            const currentSlot = document.querySelector(`[data-pick="${currentPick}"]`);
+            if (currentSlot) {
+                currentSlot.classList.add('current-pick');
+            }
+        }
+        
+        function toggleRecommendations() {
+            const panel = document.getElementById('recommendationsPanel');
+            const toggleText = document.getElementById('recToggleText');
+            
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                toggleText.textContent = 'Hide';
+            } else {
+                panel.style.display = 'none';
+                toggleText.textContent = 'Show';
+            }
+        }
+        
+        function undoLastPick() {
+            if (currentPick > 1 && currentDraftSession) {
+                fetch('/api/draft/undo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: currentDraftSession })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        const undonePickNumber = result.undone_pick.pick_number;
+                        const playerName = result.undone_pick.player_name;
+                        
+                        // Clear the pick slot
+                        const pickSlot = document.getElementById(`pick-${undonePickNumber}`);
+                        if (pickSlot) {
+                            pickSlot.innerHTML = '';
+                        }
+                        
+                        // Update current pick
+                        currentPick = undonePickNumber;
+                        updateDraftStatus();
+                        updateCurrentPickHighlight();
+                        
+                        // Refresh available players and recommendations
+                        loadAvailablePlayers();
+                        
+                        showMessage(`Undid pick: ${playerName}`, 'success');
+                    } else {
+                        showMessage(result.error || 'Error undoing pick', 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessage('Error undoing pick', 'error');
+                    console.error('Error:', error);
+                });
+            } else if (currentPick <= 1) {
+                showMessage('No picks to undo', 'info');
+            } else {
+                showMessage('No active draft session', 'error');
+            }
+        }
+        
+        function showMessage(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 200px;';
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

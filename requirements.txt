@@ -1,0 +1,37 @@
+# ALFRED - Fantasy Football Draft Assistant
+# Python Dependencies
+
+# Web Scraping
+beautifulsoup4>=4.12.0
+selenium>=4.15.0
+requests>=2.31.0
+
+# Database
+psycopg2-binary>=2.9.9
+sqlalchemy>=2.0.0
+
+# Web Framework
+flask>=3.0.0
+
+# Data Processing
+pandas>=2.1.0
+numpy>=1.25.0
+openpyxl>=3.1.0  # Excel file handling
+
+# Fantasy Sports APIs
+espn-api>=0.34.0
+sleeper-api-wrapper>=1.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+click>=8.1.0
+
+# Development Tools
+pytest>=7.4.0
+black>=23.11.0
+flake8>=6.1.0
+
+# Optional: For advanced features
+scikit-learn>=1.3.0  # For ML-based predictions
+matplotlib>=3.8.0    # For visualizations
+seaborn>=0.13.0      # For advanced visualizations

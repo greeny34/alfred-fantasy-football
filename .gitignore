@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+~$*
+*.tmp
+*.temp
+
+# Data files (consider if you want these in git)
+*.xlsx
+*.csv
+
+# Node (for frontend)
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite

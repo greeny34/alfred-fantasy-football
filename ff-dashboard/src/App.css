@@ -1,0 +1,12 @@
+.App {
+  text-align: center;
+}
+
+.stats-summary {
+  display: flex;
+  gap: 20px;
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+}

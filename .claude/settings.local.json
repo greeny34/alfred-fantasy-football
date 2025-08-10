@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "WebFetch(domain:www.espn.com)",
+      "WebFetch(domain:www.fantasypros.com)",
+      "WebFetch(domain:www.cbssports.com)",
+      "Bash(pip3 install:*)",
+      "Bash(mkdir:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(npx --yes create-react-app@latest ff-dashboard --template typescript)",
+      "Bash(lsof:*)"
+    ],
+    "deny": []
+  }
+}

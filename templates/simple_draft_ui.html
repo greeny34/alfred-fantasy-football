@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Football Draft Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+        }
+        .card {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .hidden { display: none; }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    
+    <!-- Welcome Screen -->
+    <div id="welcomeScreen" class="min-h-screen flex items-center justify-center p-8">
+        <div class="max-w-4xl mx-auto text-center animate-fadeIn">
+            <div class="mb-12">
+                <h1 class="text-6xl font-bold text-white mb-6">
+                    🏈 Fantasy Football<br>
+                    <span class="text-yellow-300">Draft Assistant</span>
+                </h1>
+                <p class="text-xl text-green-100 max-w-2xl mx-auto leading-relaxed">
+                    The most advanced fantasy football draft tool powered by AI. Get real-time strategy recommendations, 
+                    opponent intelligence, and dynamic optimization to dominate your draft.
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8 mb-12">
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-4xl mb-4">🎯</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">AI Strategy Engine</h3>
+                    <p class="text-gray-600">Dynamic programming optimizer with real-time recommendations</p>
+                </div>
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-4xl mb-4">👥</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">Team Intelligence</h3>
+                    <p class="text-gray-600">Track all 10 teams with AI-powered opponent analysis</p>
+                </div>
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-4xl mb-4">📊</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">Advanced Analytics</h3>
+                    <p class="text-gray-600">Position trends, value identification, and scarcity analysis</p>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <button onclick="showSetup()" class="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold py-4 px-8 rounded-full text-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                    Get Started 🚀
+                </button>
+                <br>
+                <button onclick="loadExisting()" class="text-white hover:text-yellow-300 font-semibold underline">
+                    Load Existing Draft
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Screen -->
+    <div id="setupScreen" class="hidden min-h-screen flex items-center justify-center p-8">
+        <div class="max-w-2xl mx-auto animate-fadeIn">
+            <div class="text-center mb-8">
+                <button onclick="showWelcome()" class="text-white hover:text-yellow-300 mb-6 inline-flex items-center font-semibold">
+                    ← Back to Welcome
+                </button>
+                <h2 class="text-4xl font-bold text-white mb-4">League Setup</h2>
+                <p class="text-green-100 text-lg">Configure your draft preferences</p>
+            </div>
+
+            <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-3">League Name</label>
+                        <input type="text" id="leagueName" value="My Draft 2025" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-3">Your Draft Position</label>
+                        <select id="draftPosition" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg">
+                            <option value="1">Pick 1 - First Overall (Premium Players)</option>
+                            <option value="2">Pick 2 - Early Pick (Elite Talent)</option>
+                            <option value="3">Pick 3 - Early Pick (Elite Talent)</option>
+                            <option value="4">Pick 4 - Middle Pick (Balanced Strategy)</option>
+                            <option value="5">Pick 5 - Middle Pick (Balanced Strategy)</option>
+                            <option value="6" selected>Pick 6 - Middle Pick (Balanced Strategy)</option>
+                            <option value="7">Pick 7 - Middle Pick (Balanced Strategy)</option>
+                            <option value="8">Pick 8 - Late Pick (Value Hunting)</option>
+                            <option value="9">Pick 9 - Late Pick (Value Hunting)</option>
+                            <option value="10">Pick 10 - Last Pick (Back-to-Back Picks)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-3">Scoring Format</label>
+                        <select id="scoringFormat" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg">
+                            <option value="ppr">PPR (Point Per Reception) - WRs/TEs More Valuable</option>
+                            <option value="half_ppr">Half PPR (0.5 Points Per Reception) - Balanced</option>
+                            <option value="standard">Standard (No Reception Points) - RB Focused</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                        <h4 class="font-bold text-blue-900 mb-3 text-lg">🏈 League Settings</h4>
+                        <div class="text-sm text-blue-800 space-y-2">
+                            <p>• <strong>10 Teams</strong> - Snake Draft Format</p>
+                            <p>• <strong>16 Rounds</strong> - QB, RB, RB, WR, WR, TE, FLEX, K, DST + 7 Bench</p>
+                            <p>• <strong>AI Opponents</strong> - Realistic drafting strategies</p>
+                            <p>• <strong>Live Optimization</strong> - Real-time recommendations</p>
+                        </div>
+                    </div>
+
+                    <button onclick="createSession()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-6 rounded-lg text-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        🎯 Create Draft Session
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ready Screen -->
+    <div id="readyScreen" class="hidden min-h-screen flex items-center justify-center p-8">
+        <div class="max-w-2xl mx-auto text-center animate-fadeIn">
+            <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span class="text-4xl">✅</span>
+                </div>
+                
+                <h2 class="text-3xl font-bold text-gray-900 mb-6">Ready to Draft!</h2>
+                
+                <div class="bg-gray-50 rounded-lg p-6 mb-8">
+                    <div class="grid grid-cols-2 gap-4 text-left">
+                        <div>
+                            <span class="text-gray-600 font-medium">League:</span>
+                            <div class="font-bold text-lg" id="finalLeagueName">My Draft 2025</div>
+                        </div>
+                        <div>
+                            <span class="text-gray-600 font-medium">Position:</span>
+                            <div class="font-bold text-lg" id="finalPosition">Pick 6</div>
+                        </div>
+                        <div>
+                            <span class="text-gray-600 font-medium">Format:</span>
+                            <div class="font-bold text-lg" id="finalFormat">PPR</div>
+                        </div>
+                        <div>
+                            <span class="text-gray-600 font-medium">Status:</span>
+                            <div class="font-bold text-lg text-green-600">Ready</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="text-gray-600 mb-8 text-lg leading-relaxed">
+                    Your draft session is configured! Click below to connect to your Flask backend 
+                    and enter the advanced draft interface with AI-powered recommendations.
+                </p>
+                
+                <div class="space-y-4">
+                    <button onclick="startDraft()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-lg text-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        🚀 Enter Draft Interface
+                    </button>
+                    
+                    <button onclick="showSetup()" class="text-gray-600 hover:text-gray-800 font-semibold underline">
+                        Modify Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="hidden min-h-screen flex items-center justify-center">
+        <div class="text-center text-white">
+            <div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+            <h2 class="text-2xl font-bold mb-2">Connecting to Draft Engine...</h2>
+            <p class="text-green-100">Setting up your AI-powered draft session</p>
+        </div>
+    </div>
+
+    <script>
+        // Screen management
+        function showScreen(screenId) {
+            const screens = ['welcomeScreen', 'setupScreen', 'readyScreen', 'loadingScreen'];
+            screens.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function showWelcome() {
+            showScreen('welcomeScreen');
+        }
+
+        function showSetup() {
+            showScreen('setupScreen');
+        }
+
+        function showReady() {
+            // Update the ready screen with user selections
+            const leagueName = document.getElementById('leagueName').value || 'My Draft 2024';
+            const position = document.getElementById('draftPosition').value;
+            const format = document.getElementById('scoringFormat').value.toUpperCase();
+            
+            document.getElementById('finalLeagueName').textContent = leagueName;
+            document.getElementById('finalPosition').textContent = `Pick ${position}`;
+            document.getElementById('finalFormat').textContent = format;
+            
+            showScreen('readyScreen');
+        }
+
+        function createSession() {
+            const leagueName = document.getElementById('leagueName').value || 'My Draft 2025';
+            const position = parseInt(document.getElementById('draftPosition').value);
+            const format = document.getElementById('scoringFormat').value;
+            
+            console.log('Creating session:', { leagueName, position, format });
+            
+            // Show ready screen
+            showReady();
+        }
+
+        function loadExisting() {
+            // For now just show setup, but this could check for existing sessions
+            showSetup();
+        }
+
+        async function startDraft() {
+            showScreen('loadingScreen');
+            
+            // Get user settings
+            const sessionData = {
+                session_name: document.getElementById('leagueName').value || 'My Draft 2025',
+                team_count: 10,
+                user_draft_position: parseInt(document.getElementById('draftPosition').value),
+                draft_format: document.getElementById('scoringFormat').value
+            };
+            
+            try {
+                // Try to create session with Flask backend
+                const response = await fetch('http://127.0.0.1:5001/api/draft/sessions/new', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(sessionData)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Session created:', data);
+                    
+                    // Redirect to Flask draft interface
+                    window.location.href = 'http://127.0.0.1:5001/optimizer';
+                } else {
+                    throw new Error('Failed to create session');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                
+                // Show detailed error message
+                const errorMessage = `
+❌ Could not connect to the Fantasy Football Draft Engine!
+
+🔧 To fix this:
+
+1. Open Terminal/Command Prompt
+2. Navigate to your ff_draft_vibe folder:
+   cd /Users/jeffgreenfield/dev/ff_draft_vibe
+
+3. Start the Flask server:
+   python3 data_viewer.py
+
+4. Look for the message "Running on http://127.0.0.1:5001"
+5. Come back here and try "Enter Draft Interface" again
+
+The Flask server needs to be running for the AI draft engine to work!
+                `;
+                
+                alert(errorMessage);
+                showReady(); // Go back to ready screen
+            }
+        }
+    </script>
+</body>
+</html>

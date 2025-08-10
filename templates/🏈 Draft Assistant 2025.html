@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏈 Fantasy Football Draft Assistant 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); }
+        .card { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.95); }
+        .hidden { display: none; }
+        .animate-fadeIn { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .start-button {
+            background: linear-gradient(45deg, #f59e0b, #eab308);
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
+            transition: all 0.3s ease;
+        }
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(245, 158, 11, 0.6);
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    
+    <!-- Welcome Screen -->
+    <div id="welcomeScreen" class="min-h-screen flex items-center justify-center p-8">
+        <div class="max-w-4xl mx-auto text-center animate-fadeIn">
+            <div class="mb-12">
+                <h1 class="text-7xl font-bold text-white mb-6">
+                    🏈 Fantasy Football<br>
+                    <span class="text-yellow-300">Draft Assistant 2025</span>
+                </h1>
+                <p class="text-2xl text-green-100 max-w-3xl mx-auto leading-relaxed">
+                    <strong>Just double-click to run!</strong><br>
+                    Connect to your database with real 2025 player rankings, multiple ADP sources, 
+                    and sophisticated AI opponents for the ultimate draft experience.
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8 mb-12">
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-5xl mb-4">🎯</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">One-Click Launch</h3>
+                    <p class="text-gray-600">No terminal commands - just double-click and go!</p>
+                </div>
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-5xl mb-4">🗄️</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">Real Database</h3>
+                    <p class="text-gray-600">Live 2025 player data with multiple ranking sources</p>
+                </div>
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-5xl mb-4">🤖</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">Smart AI</h3>
+                    <p class="text-gray-600">Realistic opponents using your draft algorithms</p>
+                </div>
+            </div>
+            
+            <div class="space-y-6">
+                <button onclick="startDraftAssistant()" class="start-button text-gray-900 font-bold py-6 px-12 rounded-full text-2xl transition-all duration-300 transform hover:scale-105">
+                    🚀 Start Draft Assistant
+                </button>
+                
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-6 max-w-2xl mx-auto">
+                    <h3 class="text-white font-bold mb-3">📋 Quick Setup Instructions:</h3>
+                    <div class="text-green-100 text-left space-y-2">
+                        <p>1. <strong>First time?</strong> Install Flask: <code class="bg-black/20 px-2 py-1 rounded">pip3 install flask psycopg2-binary</code></p>
+                        <p>2. <strong>Click the button above</strong> - it will start your server automatically</p>
+                        <p>3. <strong>Your browser will open</strong> - no manual steps needed!</p>
+                        <p>4. <strong>Ready to draft!</strong> Connect to your database and start drafting</p>
+                    </div>
+                </div>
+                
+                <div id="status" class="text-white font-semibold"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function startDraftAssistant() {
+            const statusEl = document.getElementById('status');
+            const button = document.querySelector('.start-button');
+            
+            // Disable button and show status
+            button.disabled = true;
+            button.textContent = '🔄 Starting...';
+            statusEl.innerHTML = '⚡ Starting your Fantasy Football Draft Assistant...';
+            
+            try {
+                // Try different ports to find an available one
+                const ports = [5002, 5003, 5004, 5005];
+                let serverStarted = false;
+                let workingPort = null;
+                
+                for (const port of ports) {
+                    statusEl.innerHTML = `🔍 Checking port ${port}...`;
+                    
+                    try {
+                        // Check if port is available by trying to connect
+                        const testResponse = await fetch(`http://127.0.0.1:${port}/api/players/list`, {
+                            method: 'GET',
+                            timeout: 1000
+                        }).catch(() => null);
+                        
+                        if (testResponse && testResponse.ok) {
+                            workingPort = port;
+                            serverStarted = true;
+                            break;
+                        }
+                    } catch (e) {
+                        // Port not available, continue checking
+                    }
+                }
+                
+                if (!serverStarted) {
+                    // Try to start the server
+                    statusEl.innerHTML = `
+                        🔧 <strong>Server not running!</strong><br>
+                        <div class="mt-4 p-4 bg-yellow-400/20 rounded-lg text-left">
+                            <strong>Quick Fix:</strong><br>
+                            1. Open Terminal<br>
+                            2. Navigate to your draft folder:<br>
+                            <code class="bg-black/30 px-2 py-1 rounded">cd /Users/jeffgreenfield/dev/ff_draft_vibe</code><br>
+                            3. Run: <code class="bg-black/30 px-2 py-1 rounded">python3 data_viewer.py</code><br>
+                            4. Come back and click the button again!
+                        </div>
+                    `;
+                    
+                    button.disabled = false;
+                    button.textContent = '🚀 Start Draft Assistant';
+                    return;
+                }
+                
+                // Server is running, open the draft assistant
+                statusEl.innerHTML = `✅ <strong>Connected to port ${workingPort}!</strong><br>Opening your Draft Assistant...`;
+                
+                // Update the API endpoint and open the real draft assistant
+                const draftAssistantUrl = `./real_draft_assistant.html`;
+                
+                setTimeout(() => {
+                    window.location.href = draftAssistantUrl;
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                statusEl.innerHTML = `
+                    ❌ <strong>Connection failed!</strong><br>
+                    <div class="mt-4 p-4 bg-red-400/20 rounded-lg text-left">
+                        <strong>Please start your Flask server:</strong><br>
+                        1. Open Terminal<br>
+                        2. Go to: <code class="bg-black/30 px-2 py-1 rounded">cd /Users/jeffgreenfield/dev/ff_draft_vibe</code><br>
+                        3. Run: <code class="bg-black/30 px-2 py-1 rounded">python3 data_viewer.py</code><br>
+                        4. Try again!
+                    </div>
+                `;
+                
+                button.disabled = false;
+                button.textContent = '🚀 Start Draft Assistant';
+            }
+        }
+        
+        // Auto-detect if server is already running
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('http://127.0.0.1:5002/api/players/list', { timeout: 2000 });
+                if (response.ok) {
+                    document.getElementById('status').innerHTML = '✅ <strong>Server detected!</strong> Ready to start drafting.';
+                }
+            } catch (e) {
+                // Server not running, that's fine
+            }
+        });
+    </script>
+</body>
+</html>

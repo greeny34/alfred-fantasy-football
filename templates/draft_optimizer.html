@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draft Strategy Optimizer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #2196F3;
+        }
+        .btn-secondary:hover {
+            background: #1976D2;
+        }
+        .strategy-display {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #4CAF50;
+        }
+        .roster-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .position-group {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .position-group h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .next-picks {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .pick-box {
+            background: #2196F3;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .confidence-bar {
+            background: #ddd;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .confidence-fill {
+            background: #4CAF50;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 5px solid #f44336;
+            margin: 10px 0;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Fantasy Football Draft Strategy Optimizer</h1>
+            <p>Dynamic roster construction with real-time strategy adaptation</p>
+        </div>
+
+        <!-- Draft Session Setup -->
+        <div class="section">
+            <h3>Draft Session Setup</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label for="sessionName">Session Name</label>
+                    <input type="text" id="sessionName" value="Test Draft 2024" />
+                </div>
+                <div class="form-group">
+                    <label for="draftPosition">Your Draft Position (1-10)</label>
+                    <select id="draftPosition">
+                        <option value="1">Pick 1</option>
+                        <option value="2">Pick 2</option>
+                        <option value="3">Pick 3</option>
+                        <option value="4">Pick 4</option>
+                        <option value="5">Pick 5</option>
+                        <option value="6" selected>Pick 6</option>
+                        <option value="7">Pick 7</option>
+                        <option value="8">Pick 8</option>
+                        <option value="9">Pick 9</option>
+                        <option value="10">Pick 10</option>
+                    </select>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn" onclick="createSession()">Create New Session</button>
+                <button class="btn btn-secondary" onclick="loadSessions()">Load Existing Session</button>
+            </div>
+        </div>
+
+        <!-- Current Session Display -->
+        <div class="section" id="sessionInfo" style="display: none;">
+            <h3>Current Draft Session</h3>
+            <div id="sessionDetails"></div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn" onclick="getOptimalStrategy()">Get Optimal Strategy</button>
+                <button class="btn btn-secondary" onclick="refreshStatus()">Refresh Status</button>
+            </div>
+            <div style="text-align: center; margin-top: 10px;">
+                <button class="btn" onclick="simulateRound()" style="background: #FF9800;">Simulate to My Turn</button>
+                <button class="btn" onclick="simulate(5)" style="background: #9C27B0;">Simulate 5 Picks</button>
+                <button class="btn" onclick="resetDraft()" style="background: #F44336;">Reset Draft</button>
+            </div>
+        </div>
+
+        <!-- Current Roster -->
+        <div class="section" id="rosterSection" style="display: none;">
+            <h3>Your Current Roster</h3>
+            <div class="roster-display" id="rosterDisplay"></div>
+        </div>
+
+        <!-- Optimal Strategy Display -->
+        <div class="section" id="strategySection" style="display: none;">
+            <h3>🎯 Optimal Strategy Recommendation</h3>
+            <div class="strategy-display" id="strategyDisplay"></div>
+        </div>
+
+        <!-- Available Players for Drafting -->
+        <div class="section" id="availablePlayersSection" style="display: none;">
+            <h3>🎯 Your Turn - Available Players</h3>
+            <div id="availablePlayersList"></div>
+        </div>
+
+        <!-- Recent Picks Display -->
+        <div class="section" id="recentPicksSection" style="display: none;">
+            <h3>📝 Recent Picks</h3>
+            <div id="recentPicksList"></div>
+        </div>
+
+        <!-- Error Display -->
+        <div id="errorDisplay" style="display: none;"></div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+
+        async function createSession() {
+            const sessionName = document.getElementById('sessionName').value;
+            const draftPosition = document.getElementById('draftPosition').value;
+
+            try {
+                const response = await fetch('/api/draft/sessions/new', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_name: sessionName,
+                        team_count: 10,
+                        user_draft_position: parseInt(draftPosition),
+                        draft_format: 'ppr'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSessionId = data.session_id;
+                    showSuccess(`Session created successfully! ID: ${currentSessionId}`);
+                    loadSessionStatus();
+                } else {
+                    showError('Failed to create session: ' + data.error);
+                }
+            } catch (error) {
+                showError('Error creating session: ' + error.message);
+            }
+        }
+
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/draft/sessions/list');
+                const data = await response.json();
+                
+                if (data.sessions && data.sessions.length > 0) {
+                    const sessionId = data.sessions[0].session_id; // Use most recent
+                    currentSessionId = sessionId;
+                    showSuccess(`Loaded session: ${data.sessions[0].session_name}`);
+                    loadSessionStatus();
+                } else {
+                    showError('No existing sessions found');
+                }
+            } catch (error) {
+                showError('Error loading sessions: ' + error.message);
+            }
+        }
+
+        async function loadSessionStatus() {
+            if (!currentSessionId) {
+                showError('No active session');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/draft/${currentSessionId}/status`);
+                const data = await response.json();
+                
+                if (data.session) {
+                    displaySessionInfo(data.session);
+                    displayRoster(data.roster);
+                    if (data.strategy) {
+                        displayStrategy(data.strategy);
+                    }
+                } else {
+                    showError('Failed to load session status: ' + data.error);
+                }
+            } catch (error) {
+                showError('Error loading session status: ' + error.message);
+            }
+        }
+
+        async function getOptimalStrategy() {
+            if (!currentSessionId) {
+                showError('No active session');
+                return;
+            }
+
+            showLoading('Calculating optimal strategy...');
+
+            try {
+                const response = await fetch(`/api/draft/optimize/${currentSessionId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayOptimalStrategy(data);
+                    hideLoading();
+                } else {
+                    showError('Failed to get optimal strategy: ' + data.error);
+                    hideLoading();
+                }
+            } catch (error) {
+                showError('Error getting optimal strategy: ' + error.message);
+                hideLoading();
+            }
+        }
+
+        function displaySessionInfo(session) {
+            const sessionInfo = document.getElementById('sessionInfo');
+            const sessionDetails = document.getElementById('sessionDetails');
+            
+            sessionDetails.innerHTML = `
+                <p><strong>Session:</strong> ${session.session_name}</p>
+                <p><strong>Teams:</strong> ${session.team_count} | <strong>Your Position:</strong> Pick ${session.user_draft_position}</p>
+                <p><strong>Current Pick:</strong> #${session.current_pick}</p>
+            `;
+            
+            sessionInfo.style.display = 'block';
+        }
+
+        function displayRoster(roster) {
+            const rosterSection = document.getElementById('rosterSection');
+            const rosterDisplay = document.getElementById('rosterDisplay');
+            
+            const positions = ['QB', 'RB', 'WR', 'TE', 'K', 'DST'];
+            let html = '';
+            
+            positions.forEach(pos => {
+                const posData = roster[pos] || { count: 0, players: [] };
+                html += `
+                    <div class="position-group">
+                        <h4>${pos} (${posData.count})</h4>
+                        ${posData.players ? posData.players.map(p => `<div>${p}</div>`).join('') : '<div>None</div>'}
+                    </div>
+                `;
+            });
+            
+            rosterDisplay.innerHTML = html;
+            rosterSection.style.display = 'block';
+        }
+
+        function displayOptimalStrategy(data) {
+            const strategySection = document.getElementById('strategySection');
+            const strategyDisplay = document.getElementById('strategyDisplay');
+            
+            const nextPicks = data.optimal_strategy.next_positions.slice(0, 5);
+            const confidence = data.optimal_strategy.confidence;
+            
+            let html = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4>📊 Current Status</h4>
+                        <p><strong>Pick:</strong> #${data.current_pick}</p>
+                        <p><strong>Expected Points:</strong> ${data.optimal_strategy.expected_points.toFixed(1)}</p>
+                        <p><strong>Strategy Confidence:</strong> ${confidence.toFixed(1)}%</p>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${confidence}%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4>🎯 Next 5 Picks</h4>
+                        <div class="next-picks">
+                            ${nextPicks.map((pos, i) => `<div class="pick-box">Pick ${data.current_pick + i}: ${pos}</div>`).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <h4>🧠 Strategy Reasoning</h4>
+                    <p>${data.optimal_strategy.reasoning}</p>
+                </div>
+                <div style="margin-top: 15px;">
+                    <h4>📋 Full Draft Path</h4>
+                    <p><strong>Remaining positions:</strong> ${data.optimal_strategy.full_path.join(' → ')}</p>
+                </div>
+            `;
+            
+            strategyDisplay.innerHTML = html;
+            strategySection.style.display = 'block';
+        }
+
+        function displayStrategy(strategy) {
+            // Display saved strategy if available
+            const strategySection = document.getElementById('strategySection');
+            const strategyDisplay = document.getElementById('strategyDisplay');
+            
+            let html = `
+                <div>
+                    <h4>💾 Saved Strategy</h4>
+                    <p><strong>Confidence:</strong> ${strategy.confidence}%</p>
+                    <p><strong>Expected Points:</strong> ${strategy.expected_points}</p>
+                    <p><strong>Reasoning:</strong> ${strategy.reasoning}</p>
+                </div>
+            `;
+            
+            strategyDisplay.innerHTML = html;
+            strategySection.style.display = 'block';
+        }
+
+        async function refreshStatus() {
+            await loadSessionStatus();
+        }
+
+        function showError(message) {
+            const errorDisplay = document.getElementById('errorDisplay');
+            errorDisplay.innerHTML = `<div class="error">❌ ${message}</div>`;
+            errorDisplay.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            const errorDisplay = document.getElementById('errorDisplay');
+            errorDisplay.innerHTML = `<div style="background: #e8f5e8; color: #2e7d32; padding: 15px; border-radius: 5px; border-left: 5px solid #4caf50; margin: 10px 0;">✅ ${message}</div>`;
+            errorDisplay.style.display = 'block';
+            setTimeout(() => {
+                errorDisplay.style.display = 'none';
+            }, 3000);
+        }
+
+        function showLoading(message) {
+            const errorDisplay = document.getElementById('errorDisplay');
+            errorDisplay.innerHTML = `<div class="loading">⏳ ${message}</div>`;
+            errorDisplay.style.display = 'block';
+        }
+
+        function hideLoading() {
+            const errorDisplay = document.getElementById('errorDisplay');
+            errorDisplay.style.display = 'none';
+        }
+
+        async function simulateRound() {
+            if (!currentSessionId) {
+                showError('No active session');
+                return;
+            }
+
+            showLoading('Simulating picks to your turn...');
+
+            try {
+                const response = await fetch(`/api/draft/${currentSessionId}/simulate-round`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess(`Simulated ${data.picks_simulated} picks. Your turn at pick #${data.next_user_pick}!`);
+                    await loadSessionStatus();
+                    await getOptimalStrategy();
+                    showAvailablePlayers();
+                    hideLoading();
+                } else {
+                    showError('Failed to simulate round: ' + data.error);
+                    hideLoading();
+                }
+            } catch (error) {
+                showError('Error simulating round: ' + error.message);
+                hideLoading();
+            }
+        }
+
+        async function simulate(picks) {
+            if (!currentSessionId) {
+                showError('No active session');
+                return;
+            }
+
+            showLoading(`Simulating ${picks} picks...`);
+
+            try {
+                const response = await fetch(`/api/draft/${currentSessionId}/simulate/${picks}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess(`Simulated ${data.picks_simulated} picks`);
+                    await loadSessionStatus();
+                    hideLoading();
+                    displayRecentPicks(data.simulated_picks);
+                } else {
+                    showError('Failed to simulate picks: ' + data.error);
+                    hideLoading();
+                }
+            } catch (error) {
+                showError('Error simulating picks: ' + error.message);
+                hideLoading();
+            }
+        }
+
+        async function resetDraft() {
+            if (!currentSessionId) {
+                showError('No active session');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to reset the draft? This will delete all picks.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/draft/${currentSessionId}/reset`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Draft reset successfully!');
+                    await loadSessionStatus();
+                    hideRecentPicks();
+                    hideAvailablePlayers();
+                } else {
+                    showError('Failed to reset draft: ' + data.error);
+                }
+            } catch (error) {
+                showError('Error resetting draft: ' + error.message);
+            }
+        }
+
+        async function showAvailablePlayers() {
+            if (!currentSessionId) return;
+
+            try {
+                const response = await fetch(`/api/draft/available-players/${currentSessionId}`);
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    const availablePlayersSection = document.getElementById('availablePlayersSection');
+                    const availablePlayersList = document.getElementById('availablePlayersList');
+                    
+                    let html = `
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    `;
+                    
+                    const topPlayers = data.slice(0, 20); // Show top 20 available
+                    topPlayers.forEach(player => {
+                        html += `
+                            <div class="player-card" style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 5px; cursor: pointer;" onclick="draftPlayer(${player.player_id}, '${player.name}', '${player.position}')">
+                                <div style="font-weight: bold;">${player.name}</div>
+                                <div style="color: #666;">${player.position} - ${player.team}</div>
+                                <div style="font-size: 12px; color: #999;">ADP: ${player.adp}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    availablePlayersList.innerHTML = html;
+                    availablePlayersSection.style.display = 'block';
+                } else {
+                    hideAvailablePlayers();
+                }
+            } catch (error) {
+                console.error('Error loading available players:', error);
+            }
+        }
+
+        async function draftPlayer(playerId, playerName, position) {
+            if (!currentSessionId) return;
+
+            if (!confirm(`Draft ${playerName} (${position})?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/draft/${currentSessionId}/make-pick`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        player_id: playerId
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess(`Drafted ${data.player.name} (${data.player.position}) with pick #${data.pick_number}!`);
+                    await loadSessionStatus();
+                    await getOptimalStrategy();
+                    hideAvailablePlayers();
+                } else {
+                    showError('Failed to make pick: ' + data.error);
+                }
+            } catch (error) {
+                showError('Error making pick: ' + error.message);
+            }
+        }
+
+        function displayRecentPicks(picks) {
+            const recentPicksSection = document.getElementById('recentPicksSection');
+            const recentPicksList = document.getElementById('recentPicksList');
+            
+            let html = '<div style="max-height: 300px; overflow-y: auto;">';
+            picks.slice(-10).reverse().forEach(pick => {
+                html += `
+                    <div style="padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
+                        <div>
+                            <strong>Pick ${pick.pick_number}:</strong> ${pick.player.name} (${pick.player.position}, ${pick.player.team})
+                        </div>
+                        <div style="color: #666; font-size: 12px;">
+                            Team ${pick.team_number} (${pick.ai_strategy}) - ADP: ${pick.player.adp}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            recentPicksList.innerHTML = html;
+            recentPicksSection.style.display = 'block';
+        }
+
+        function hideAvailablePlayers() {
+            document.getElementById('availablePlayersSection').style.display = 'none';
+        }
+
+        function hideRecentPicks() {
+            document.getElementById('recentPicksSection').style.display = 'none';
+        }
+
+        // Auto-load if there are existing sessions
+        window.onload = function() {
+            loadSessions();
+        };
+    </script>
+</body>
+</html>

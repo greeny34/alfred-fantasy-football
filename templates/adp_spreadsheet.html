@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADP Rankings Spreadsheet</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .spreadsheet-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        .spreadsheet-table {
+            min-width: 1200px;
+            font-size: 0.875rem;
+        }
+        
+        .spreadsheet-table th {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px 6px;
+            text-align: center;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+        }
+        
+        .spreadsheet-table th:hover {
+            background-color: #e9ecef;
+        }
+        
+        .sortable {
+            position: relative;
+            padding-right: 20px;
+        }
+        
+        .sort-icon {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7em;
+            opacity: 0.5;
+        }
+        
+        .sort-icon.active {
+            opacity: 1;
+            color: #007bff;
+        }
+        
+        .spreadsheet-table td {
+            border: 1px solid #dee2e6;
+            padding: 4px 6px;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        
+        .player-name {
+            text-align: left !important;
+            font-weight: 600;
+            min-width: 150px;
+        }
+        
+        .position-QB { color: #dc3545; font-weight: bold; }
+        .position-RB { color: #28a745; font-weight: bold; }
+        .position-WR { color: #007bff; font-weight: bold; }
+        .position-TE { color: #ffc107; font-weight: bold; }
+        .position-K { color: #6c757d; font-weight: bold; }
+        .position-DST { color: #6f42c1; font-weight: bold; }
+        
+        .unranked-row {
+            background-color: #f8f9fa;
+            opacity: 0.6;
+        }
+        
+        .stat-column {
+            background-color: #fff3cd;
+            font-weight: 600;
+        }
+        
+        .ordinal-column {
+            background-color: #d1ecf1;
+            font-weight: 600;
+        }
+        
+        .adp-column {
+            background-color: #f8f9fa;
+        }
+        
+        .controls-header {
+            background: white;
+            padding: 15px 0;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 0;
+        }
+        
+        .filter-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .stats-summary {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="controls-header">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h2 class="mb-0">
+                        <i class="fas fa-chart-line text-warning"></i> 
+                        ADP Rankings
+                    </h2>
+                    <small class="text-muted">Average Draft Position from multiple sources</small>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="btn-group me-3" role="group">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search players..." style="width: 200px; display: inline-block;">
+                        <button class="btn btn-outline-secondary" onclick="clearSearch()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-success btn-sm me-2" onclick="loadSpreadsheet()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                    <a href="/" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="fas fa-table"></i> Position Rankings
+                    </a>
+                    <a href="/draft" class="btn btn-primary btn-sm">
+                        <i class="fas fa-chess-board"></i> Draft Board
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filter-section">
+            <div class="row">
+                <div class="col-md-2">
+                    <label for="positionFilter" class="form-label">Position</label>
+                    <select class="form-select form-select-sm" id="positionFilter">
+                        <option value="">All Positions</option>
+                        <option value="QB">QB</option>
+                        <option value="RB">RB</option>
+                        <option value="WR">WR</option>
+                        <option value="TE">TE</option>
+                        <option value="K">K</option>
+                        <option value="DST">DST</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="teamFilter" class="form-label">Team</label>
+                    <select class="form-select form-select-sm" id="teamFilter">
+                        <option value="">All Teams</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Quick Filters</label>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm me-1" onclick="filterByPosition('QB')">QB</button>
+                        <button class="btn btn-outline-success btn-sm me-1" onclick="filterByPosition('RB')">RB</button>
+                        <button class="btn btn-outline-info btn-sm me-1" onclick="filterByPosition('WR')">WR</button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="filterByPosition('TE')">TE</button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Display Options</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="showUnranked" checked>
+                        <label class="form-check-label" for="showUnranked">Show unranked players</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="showOrdinals" checked>
+                        <label class="form-check-label" for="showOrdinals">Show ordinal ranks</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats Summary -->
+        <div class="stats-summary" id="statsSummary" style="display: none;">
+            <div class="row text-center">
+                <div class="col-md-2">
+                    <div class="h5 mb-0" id="totalPlayers">-</div>
+                    <small class="text-muted">Total Players</small>
+                </div>
+                <div class="col-md-2">
+                    <div class="h5 mb-0" id="rankedPlayers">-</div>
+                    <small class="text-muted">With ADP Data</small>
+                </div>
+                <div class="col-md-2">
+                    <div class="h5 mb-0" id="avgSources">-</div>
+                    <small class="text-muted">Avg Sources</small>
+                </div>
+                <div class="col-md-2">
+                    <div class="h5 mb-0" id="topADP">-</div>
+                    <small class="text-muted">Best ADP</small>
+                </div>
+                <div class="col-md-2">
+                    <div class="h5 mb-0" id="avgCV">-</div>
+                    <small class="text-muted">Avg CV%</small>
+                </div>
+                <div class="col-md-2">
+                    <div class="h5 mb-0" id="mostVolatile">-</div>
+                    <small class="text-muted">Most Volatile</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Spreadsheet -->
+        <div class="spreadsheet-container">
+            <table class="table table-bordered spreadsheet-table" id="spreadsheetTable">
+                <thead>
+                    <tr id="headerRow">
+                        <!-- Headers will be dynamically generated -->
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="loading-overlay" style="display: none;">
+            <div class="text-center">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+                <div class="h5">Loading ADP data...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let spreadsheetData = [];
+        let filteredData = [];
+        let allSources = [];
+        let currentSort = { column: 'ordinal_adp', direction: 'asc' };
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            loadSpreadsheet();
+        });
+        
+        function setupEventListeners() {
+            // Filter events
+            document.getElementById('positionFilter').addEventListener('change', applyFilters);
+            document.getElementById('teamFilter').addEventListener('change', applyFilters);
+            document.getElementById('searchInput').addEventListener('input', applyFilters);
+            document.getElementById('showUnranked').addEventListener('change', applyFilters);
+            document.getElementById('showOrdinals').addEventListener('change', toggleOrdinalColumns);
+        }
+        
+        function loadSpreadsheet() {
+            showLoading(true);
+            
+            const position = document.getElementById('positionFilter').value;
+            const team = document.getElementById('teamFilter').value;
+            const search = document.getElementById('searchInput').value;
+            
+            const params = new URLSearchParams();
+            if (position) params.append('position', position);
+            if (team) params.append('team', team);
+            if (search) params.append('search', search);
+            
+            fetch(`/api/adp-players?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    spreadsheetData = data.players;
+                    allSources = data.sources;
+                    
+                    populateTeamFilter();
+                    generateTableHeaders();
+                    applyFilters();
+                    updateStatsSummary();
+                    
+                    document.getElementById('statsSummary').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    showMessage('Error loading spreadsheet data', 'error');
+                })
+                .finally(() => {
+                    showLoading(false);
+                });
+        }
+        
+        function generateTableHeaders() {
+            const headerRow = document.getElementById('headerRow');
+            let html = `
+                <th class="sortable" onclick="sortTable('ordinal_adp')">
+                    Rank <i class="fas fa-sort sort-icon"></i>
+                </th>
+                <th class="sortable" onclick="sortTable('name')">
+                    Player <i class="fas fa-sort sort-icon"></i>
+                </th>
+                <th class="sortable" onclick="sortTable('position')">
+                    Pos <i class="fas fa-sort sort-icon"></i>
+                </th>
+                <th class="sortable" onclick="sortTable('team')">
+                    Team <i class="fas fa-sort sort-icon"></i>
+                </th>
+                <th class="sortable stat-column" onclick="sortTable('mean_adp')">
+                    Mean ADP <i class="fas fa-sort sort-icon"></i>
+                </th>
+                <th class="sortable stat-column" onclick="sortTable('min_adp')">
+                    Min <i class="fas fa-sort sort-icon"></i>
+                </th>
+                <th class="sortable stat-column" onclick="sortTable('max_adp')">
+                    Max <i class="fas fa-sort sort-icon"></i>
+                </th>
+                <th class="sortable stat-column" onclick="sortTable('stdev_adp')">
+                    StdDev <i class="fas fa-sort sort-icon"></i>
+                </th>
+                <th class="sortable stat-column" onclick="sortTable('cv_adp')">
+                    CV% <i class="fas fa-sort sort-icon"></i>
+                </th>
+                <th class="sortable ordinal-column" onclick="sortTable('ordinal_aggressive')">
+                    Aggr Rank <i class="fas fa-sort sort-icon"></i>
+                </th>
+                <th class="sortable ordinal-column" onclick="sortTable('ordinal_conservative')">
+                    Cons Rank <i class="fas fa-sort sort-icon"></i>
+                </th>
+            `;
+            
+            // Add individual ADP source columns
+            allSources.forEach(source => {
+                const cleanSource = source.replace(' ', '_').replace('-', '_');
+                html += `
+                    <th class="sortable adp-column" onclick="sortTable('adp_${cleanSource}')">
+                        ${source} <i class="fas fa-sort sort-icon"></i>
+                    </th>
+                `;
+            });
+            
+            headerRow.innerHTML = html;
+        }
+        
+        function applyFilters() {
+            const position = document.getElementById('positionFilter').value;
+            const team = document.getElementById('teamFilter').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const showUnranked = document.getElementById('showUnranked').checked;
+            
+            filteredData = spreadsheetData.filter(player => {
+                if (position && player.position !== position) return false;
+                if (team && player.team !== team) return false;
+                if (search && !player.name.toLowerCase().includes(search)) return false;
+                if (!showUnranked && player.is_unranked) return false;
+                return true;
+            });
+            
+            renderTable();
+        }
+        
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            let html = '';
+            
+            filteredData.forEach(player => {
+                const rowClass = player.is_unranked ? 'unranked-row' : '';
+                
+                html += `<tr class="${rowClass}">`;
+                html += `<td class="ordinal-column">${formatValue(player.ordinal_adp)}</td>`;
+                html += `<td class="player-name">${player.name}</td>`;
+                html += `<td><span class="position-${player.position}">${player.position}</span></td>`;
+                html += `<td>${player.team}</td>`;
+                html += `<td class="stat-column">${formatValue(player.mean_adp)}</td>`;
+                html += `<td class="stat-column">${formatValue(player.min_adp)}</td>`;
+                html += `<td class="stat-column">${formatValue(player.max_adp)}</td>`;
+                html += `<td class="stat-column">${formatValue(player.stdev_adp)}</td>`;
+                html += `<td class="stat-column">${formatValue(player.cv_adp)}${player.cv_adp !== 'NA' ? '%' : ''}</td>`;
+                html += `<td class="ordinal-column">${formatValue(player.ordinal_aggressive)}</td>`;
+                html += `<td class="ordinal-column">${formatValue(player.ordinal_conservative)}</td>`;
+                
+                // Add individual ADP values
+                allSources.forEach(source => {
+                    const cleanSource = source.replace(' ', '_').replace('-', '_');
+                    const value = player[`adp_${cleanSource}`];
+                    html += `<td class="adp-column">${formatValue(value)}</td>`;
+                });
+                
+                html += '</tr>';
+            });
+            
+            tbody.innerHTML = html;
+            updateSortIcons();
+        }
+        
+        function sortTable(column) {
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+            
+            filteredData.sort((a, b) => {
+                let valueA = a[column];
+                let valueB = b[column];
+                
+                // Handle NA values
+                if (valueA === 'NA' && valueB === 'NA') return 0;
+                if (valueA === 'NA') return 1;
+                if (valueB === 'NA') return -1;
+                
+                // Handle string vs number comparison
+                if (typeof valueA === 'string' && typeof valueB === 'string') {
+                    valueA = valueA.toLowerCase();
+                    valueB = valueB.toLowerCase();
+                }
+                
+                if (valueA < valueB) return currentSort.direction === 'asc' ? -1 : 1;
+                if (valueA > valueB) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            renderTable();
+        }
+        
+        function updateSortIcons() {
+            // Reset all icons
+            document.querySelectorAll('.sort-icon').forEach(icon => {
+                icon.className = 'fas fa-sort sort-icon';
+            });
+            
+            // Set active icon
+            const activeHeader = document.querySelector(`[onclick="sortTable('${currentSort.column}')"] .sort-icon`);
+            if (activeHeader) {
+                activeHeader.className = `fas fa-sort-${currentSort.direction === 'asc' ? 'up' : 'down'} sort-icon active`;
+            }
+        }
+        
+        function populateTeamFilter() {
+            const teamSelect = document.getElementById('teamFilter');
+            const teams = [...new Set(spreadsheetData.map(p => p.team))].sort();
+            
+            teamSelect.innerHTML = '<option value="">All Teams</option>';
+            teams.forEach(team => {
+                teamSelect.innerHTML += `<option value="${team}">${team}</option>`;
+            });
+        }
+        
+        function updateStatsSummary() {
+            const rankedPlayers = spreadsheetData.filter(p => !p.is_unranked);
+            const totalSources = rankedPlayers.reduce((sum, p) => {
+                const sourceCount = allSources.filter(s => {
+                    const cleanSource = s.replace(' ', '_').replace('-', '_');
+                    return p[`adp_${cleanSource}`] !== 'NA' && typeof p[`adp_${cleanSource}`] === 'number';
+                }).length;
+                return sum + sourceCount;
+            }, 0);
+            
+            const avgCV = rankedPlayers.reduce((sum, p) => sum + (p.cv_adp !== 'NA' ? p.cv_adp : 0), 0) / rankedPlayers.length;
+            const topPlayer = rankedPlayers.find(p => p.ordinal_adp === 1);
+            const mostVolatilePlayer = rankedPlayers.reduce((max, p) => 
+                p.cv_adp !== 'NA' && p.cv_adp > (max.cv_adp || 0) ? p : max, {});
+            
+            document.getElementById('totalPlayers').textContent = spreadsheetData.length;
+            document.getElementById('rankedPlayers').textContent = rankedPlayers.length;
+            document.getElementById('avgSources').textContent = (totalSources / rankedPlayers.length).toFixed(1);
+            document.getElementById('topADP').textContent = topPlayer ? topPlayer.name : '-';
+            document.getElementById('avgCV').textContent = avgCV.toFixed(1) + '%';
+            document.getElementById('mostVolatile').textContent = mostVolatilePlayer.name || '-';
+        }
+        
+        function filterByPosition(position) {
+            document.getElementById('positionFilter').value = position;
+            applyFilters();
+        }
+        
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            applyFilters();
+        }
+        
+        function toggleOrdinalColumns() {
+            const show = document.getElementById('showOrdinals').checked;
+            const columns = document.querySelectorAll('.ordinal-column');
+            columns.forEach(col => {
+                col.style.display = show ? '' : 'none';
+            });
+        }
+        
+        function formatValue(value) {
+            if (value === 'NA' || value === null || value === undefined) return 'NA';
+            if (typeof value === 'number') return value.toFixed(2);
+            return value;
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loadingSpinner').style.display = show ? 'flex' : 'none';
+        }
+        
+        function showMessage(message, type) {
+            // Simple toast notification
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 10000; min-width: 250px;';
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

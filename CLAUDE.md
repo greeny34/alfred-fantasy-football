@@ -1,0 +1,108 @@
+# ALFRED - Analytical League Fantasy Resource for Elite Drafting
+
+## Project Overview
+ALFRED is a comprehensive fantasy football draft assistant that provides real-time recommendations, player rankings aggregation, and draft strategy optimization. The system integrates with multiple fantasy platforms (ESPN, Sleeper, Yahoo) and aggregates rankings from various sources.
+
+## Current State
+- **Database**: PostgreSQL with player, rankings, ADP, and strategy tables
+- **Backend**: Python-based scrapers, API servers, and draft engines
+- **Frontend**: React + TypeScript dashboard using Vite and D3.js
+- **Integrations**: Sleeper API, ESPN scraping, FantasyPros data
+
+## Project Structure (Current - Needs Organization)
+```
+ff_draft_vibe/
+├── ff-dashboard/          # React frontend application
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   └── main.tsx       # Entry point
+│   └── package.json       # Frontend dependencies
+├── templates/             # HTML templates for web UI
+├── *.py                   # 100+ Python files (NEEDS ORGANIZATION)
+├── *.xlsx                 # Data files and rankings
+└── *.csv                  # Exported data
+```
+
+## Key Components
+
+### Database Schema (PostgreSQL)
+- **players**: Player information (name, position, team)
+- **ranking_sources**: ESPN, FantasyPros, Yahoo, etc.
+- **player_rankings**: Rankings by source and date
+- **player_adp**: Average Draft Position data
+- **draft_boards**: Active draft tracking
+- **draft_picks**: Pick history
+- **roster_constructions**: Team composition tracking
+
+### Core Python Modules
+1. **Draft Engines**
+   - `draft_assistant_app.py` - Main desktop app
+   - `sleeper_draft_assistant.py` - Sleeper platform integration
+   - `simple_draft_engine.py` - Core draft logic
+   - `dynamic_draft_optimizer.py` - Strategy optimization
+
+2. **Data Collection**
+   - `espn_rankings_scraper.py` - ESPN data collection
+   - `fantasy_rankings_aggregator.py` - Combines multiple sources
+   - `data_scraper.py` - Generic scraping framework
+
+3. **Database Management**
+   - `database_setup.py` - Schema creation
+   - `db_inspector.py` - Database utilities
+
+### Frontend (React)
+- Located in `ff-dashboard/`
+- Uses Vite for development
+- TypeScript for type safety
+- D3.js for visualizations
+
+## Known Issues
+1. **File Organization**: 100+ Python files in root directory
+2. **No dependency management**: Missing requirements.txt
+3. **Multiple versions**: Unclear which files are current
+4. **Sleeper Integration**: User ID mapping issues in mock drafts
+
+## Development Workflow
+
+### Starting Fresh
+1. Check database connection: `python database_setup.py`
+2. Run data collection: `python fantasy_rankings_aggregator.py`
+3. Start React frontend: `cd ff-dashboard && npm run dev`
+4. Launch draft assistant: `python draft_assistant_app.py`
+
+### Common Tasks
+- **Update rankings**: Run scrapers for each source
+- **Test draft logic**: Use `simple_draft_engine.py`
+- **Debug Sleeper**: Check `sleeper_draft_issues_analysis.py`
+
+## TODO - Project Organization
+1. Create proper directory structure:
+   - `src/scrapers/` - Data collection scripts
+   - `src/engines/` - Draft logic and algorithms
+   - `src/api/` - API servers and endpoints
+   - `src/db/` - Database utilities
+   - `data/` - Excel and CSV files
+   - `scripts/` - One-off utilities
+
+2. Add requirements.txt with all Python dependencies
+
+3. Clean up duplicate/obsolete files
+
+4. Create comprehensive README.md
+
+## Environment Variables
+- `USER` - PostgreSQL username (defaults to system user)
+- Database: `fantasy_draft_db` on localhost:5432
+
+## Critical Files for AI Agents
+When working on this project, always check:
+1. `database_setup.py` - Database schema
+2. `draft_assistant_app.py` - Main application
+3. `ff-dashboard/src/` - Frontend code
+4. This file (CLAUDE.md) - Project context
+
+## Recent Work
+- Sleeper integration debugging
+- Mock draft functionality
+- React dashboard development
+- Data aggregation from multiple sources

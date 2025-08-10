@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Football Draft Assistant 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+        }
+        .card {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .hidden { display: none; }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .draft-board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+            font-size: 11px;
+        }
+        .draft-cell {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 4px;
+            border-radius: 4px;
+            text-align: center;
+            min-height: 50px;
+        }
+        .user-team { background: #bfdbfe !important; border-color: #3b82f6; }
+        .picked { background: #dcfce7 !important; border-color: #22c55e; }
+        .current-pick { 
+            background: #fef3c7 !important; 
+            border: 2px solid #f59e0b;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .team-card {
+            transition: all 0.3s ease;
+        }
+        .team-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    
+    <!-- Welcome Screen -->
+    <div id="welcomeScreen" class="min-h-screen flex items-center justify-center p-8">
+        <div class="max-w-4xl mx-auto text-center animate-fadeIn">
+            <div class="mb-12">
+                <h1 class="text-6xl font-bold text-white mb-6">
+                    🏈 Fantasy Football<br>
+                    <span class="text-yellow-300">Draft Assistant 2025</span>
+                </h1>
+                <p class="text-xl text-green-100 max-w-2xl mx-auto leading-relaxed">
+                    Connect to your database with real 2025 player rankings, multiple ADP sources, 
+                    and sophisticated AI opponents for the ultimate draft experience.
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8 mb-12">
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-4xl mb-4">🎯</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">Real Database Integration</h3>
+                    <p class="text-gray-600">Live 2025 player data with multiple ranking sources and ADP</p>
+                </div>
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-4xl mb-4">🤖</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">AI Draft Opponents</h3>
+                    <p class="text-gray-600">Realistic strategies based on your actual ranking systems</p>
+                </div>
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-4xl mb-4">📊</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">Step-Through Interface</h3>
+                    <p class="text-gray-600">Stops at each of your picks with full team intelligence</p>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <button onclick="checkConnection()" class="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold py-4 px-8 rounded-full text-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                    Connect to Database 🚀
+                </button>
+                <br>
+                <div id="connectionStatus" class="text-white text-sm"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Screen -->
+    <div id="setupScreen" class="hidden min-h-screen flex items-center justify-center p-8">
+        <div class="max-w-2xl mx-auto animate-fadeIn">
+            <div class="text-center mb-8">
+                <button onclick="showWelcome()" class="text-white hover:text-yellow-300 mb-6 inline-flex items-center font-semibold">
+                    ← Back to Welcome
+                </button>
+                <h2 class="text-4xl font-bold text-white mb-4">League Setup 2025</h2>
+                <p class="text-green-100 text-lg">Configure your real draft preferences</p>
+            </div>
+
+            <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-3">League Name</label>
+                        <input type="text" id="leagueName" value="My Draft 2025" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-3">Your Draft Position</label>
+                        <select id="draftPosition" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg">
+                            <option value="1">Pick 1 - First Overall (Premium Players)</option>
+                            <option value="2">Pick 2 - Early Pick (Elite Talent)</option>
+                            <option value="3">Pick 3 - Early Pick (Elite Talent)</option>
+                            <option value="4">Pick 4 - Middle Pick (Balanced Strategy)</option>
+                            <option value="5">Pick 5 - Middle Pick (Balanced Strategy)</option>
+                            <option value="6" selected>Pick 6 - Middle Pick (Balanced Strategy)</option>
+                            <option value="7">Pick 7 - Middle Pick (Balanced Strategy)</option>
+                            <option value="8">Pick 8 - Late Pick (Value Hunting)</option>
+                            <option value="9">Pick 9 - Late Pick (Value Hunting)</option>
+                            <option value="10">Pick 10 - Last Pick (Back-to-Back Picks)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-3">Scoring Format</label>
+                        <select id="scoringFormat" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg">
+                            <option value="ppr">PPR (Point Per Reception) - WRs/TEs More Valuable</option>
+                            <option value="half_ppr">Half PPR (0.5 Points Per Reception) - Balanced</option>
+                            <option value="standard">Standard (No Reception Points) - RB Focused</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-green-50 rounded-lg p-6 border border-green-200">
+                        <h4 class="font-bold text-green-900 mb-3 text-lg">🏈 Real Database Features</h4>
+                        <div class="text-sm text-green-800 space-y-2">
+                            <p>• <strong>Live 2025 Data</strong> - Real players from your database</p>
+                            <p>• <strong>Multiple ADP Sources</strong> - Fantrax, Sleeper, ESPN, MFL, NFFC</p>
+                            <p>• <strong>Dynamic AI Opponents</strong> - Using your ranking algorithms</p>
+                            <p>• <strong>Step-Through Interface</strong> - Stops at each of your picks</p>
+                        </div>
+                    </div>
+
+                    <button onclick="createRealSession()" id="createSessionBtn" disabled class="w-full bg-gray-400 text-white font-bold py-4 px-6 rounded-lg text-xl cursor-not-allowed">
+                        🎯 Create Real Draft Session
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Draft Interface -->
+    <div id="draftScreen" class="hidden min-h-screen p-4">
+        <div class="container mx-auto max-w-7xl animate-fadeIn">
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">🏈 <span id="draftLeagueName">My Draft 2025</span></h1>
+                        <p class="text-gray-600">Pick #<span id="currentPick">1</span> • Round <span id="currentRound">1</span> • Your Position: <span id="yourPosition">6</span> • <span id="draftFormat">PPR</span></p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="simulateToMyTurn()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                            🤖 Simulate to My Turn
+                        </button>
+                        <button onclick="showWelcome()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+                            ← Exit Draft
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Status Bar -->
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <div class="flex justify-between items-center">
+                        <div class="text-blue-800">
+                            <span id="turnStatus">🎯 AI Opponents Drafting...</span>
+                        </div>
+                        <div class="text-blue-600 font-semibold">
+                            Session ID: <span id="sessionId">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                <!-- Main Draft Area -->
+                <div class="xl:col-span-3 space-y-6">
+                    <!-- Draft Board -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h2 class="text-xl font-bold mb-4">📊 Live Draft Board</h2>
+                        <div class="draft-board" id="draftBoard">
+                            <!-- Draft board will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Team Intelligence -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h2 class="text-xl font-bold mb-4">👥 Team Intelligence</h2>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="teamIntelligence">
+                            <!-- Team cards will be populated -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Strategy Sidebar -->
+                <div class="space-y-6">
+                    <!-- AI Strategy -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-lg font-bold mb-4">🎯 AI Strategy</h3>
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                            <h4 class="font-semibold text-green-800 mb-2">Next Pick Recommendation</h4>
+                            <p class="text-green-700 text-sm" id="strategyText">
+                                Connecting to your draft optimizer...
+                            </p>
+                        </div>
+                        <div class="space-y-2" id="strategyDetails">
+                            <!-- Strategy details will be populated -->
+                        </div>
+                    </div>
+                    
+                    <!-- Available Players -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-lg font-bold mb-4">👥 Available Players</h3>
+                        <div id="availablePlayers" class="space-y-2 max-h-96 overflow-y-auto">
+                            <!-- Players will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Your Roster -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-lg font-bold mb-4">🏆 Your Team</h3>
+                        <div id="userRoster" class="space-y-2">
+                            <!-- Roster will be populated -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="hidden min-h-screen flex items-center justify-center">
+        <div class="text-center text-white">
+            <div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+            <h2 class="text-2xl font-bold mb-2" id="loadingTitle">Connecting to Database...</h2>
+            <p class="text-green-100" id="loadingMessage">Initializing your 2025 draft session</p>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentSessionId = null;
+        let userPosition = 6;
+        let currentPickNumber = 1;
+        let isMyTurn = false;
+        let draftData = {
+            session: null,
+            picks: [],
+            availablePlayers: [],
+            strategy: null,
+            teamIntelligence: {}
+        };
+        
+        const API_BASE = 'http://127.0.0.1:5002';
+        
+        // Screen management
+        function showScreen(screenId) {
+            const screens = ['welcomeScreen', 'setupScreen', 'draftScreen', 'loadingScreen'];
+            screens.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function showWelcome() {
+            showScreen('welcomeScreen');
+        }
+
+        function showSetup() {
+            showScreen('setupScreen');
+        }
+        
+        // Connection and API functions
+        async function checkConnection() {
+            showScreen('loadingScreen');
+            document.getElementById('loadingTitle').textContent = 'Connecting to Database...';
+            document.getElementById('loadingMessage').textContent = 'Testing Flask server connection';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/players/list`);
+                if (!response.ok) throw new Error('Server not responding');
+                
+                const data = await response.json();
+                console.log(`Connected! Found ${data.length} players in database`);
+                
+                document.getElementById('connectionStatus').innerHTML = 
+                    `✅ Connected! Found <strong>${data.length}</strong> players in 2025 database`;
+                document.getElementById('createSessionBtn').disabled = false;
+                document.getElementById('createSessionBtn').className = 
+                    'w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-6 rounded-lg text-xl transition-all duration-300 transform hover:scale-105 shadow-lg';
+                
+                setTimeout(() => showSetup(), 1500);
+                
+            } catch (error) {
+                console.error('Connection failed:', error);
+                document.getElementById('connectionStatus').innerHTML = 
+                    `❌ <strong>Connection Failed!</strong><br>
+                    <small>Start your Flask server: <code>python3 data_viewer.py</code></small>`;
+                
+                setTimeout(() => showScreen('welcomeScreen'), 3000);
+            }
+        }
+        
+        async function createRealSession() {
+            showScreen('loadingScreen');
+            document.getElementById('loadingTitle').textContent = 'Creating Draft Session...';
+            document.getElementById('loadingMessage').textContent = 'Initializing AI opponents and database connection';
+            
+            const sessionData = {
+                session_name: document.getElementById('leagueName').value || 'My Draft 2025',
+                team_count: 10,
+                user_draft_position: parseInt(document.getElementById('draftPosition').value),
+                draft_format: document.getElementById('scoringFormat').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/draft/sessions/new`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sessionData)
+                });
+                
+                if (!response.ok) throw new Error('Failed to create session');
+                
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error || 'Session creation failed');
+                
+                currentSessionId = data.session_id;
+                userPosition = sessionData.user_draft_position;
+                
+                // Update UI
+                document.getElementById('draftLeagueName').textContent = sessionData.session_name;
+                document.getElementById('yourPosition').textContent = userPosition;
+                document.getElementById('draftFormat').textContent = sessionData.draft_format.toUpperCase();
+                document.getElementById('sessionId').textContent = currentSessionId;
+                
+                console.log('Session created:', data);
+                
+                // Load initial draft state
+                await loadDraftState();
+                
+                showScreen('draftScreen');
+                
+            } catch (error) {
+                console.error('Session creation failed:', error);
+                alert(`Failed to create draft session: ${error.message}\n\nMake sure your Flask server is running:\npython3 data_viewer.py`);
+                showSetup();
+            }
+        }
+        
+        async function loadDraftState() {
+            if (!currentSessionId) return;
+            
+            try {
+                // Load session status
+                const statusResponse = await fetch(`${API_BASE}/api/draft/${currentSessionId}/status`);
+                const statusData = await statusResponse.json();
+                
+                if (statusData.session) {
+                    draftData.session = statusData.session;
+                    currentPickNumber = statusData.session.current_pick;
+                    
+                    document.getElementById('currentPick').textContent = currentPickNumber;
+                    document.getElementById('currentRound').textContent = Math.ceil(currentPickNumber / 10);
+                    
+                    // Check if it's user's turn
+                    const currentTeam = getCurrentPickTeam(currentPickNumber);
+                    isMyTurn = (currentTeam === userPosition);
+                    
+                    updateTurnStatus();
+                }
+                
+                // Load available players
+                await loadAvailablePlayers();
+                
+                // Load strategy if it's user's turn
+                if (isMyTurn) {
+                    await loadOptimalStrategy();
+                }
+                
+                // Update displays
+                updateDraftBoard();
+                updateTeamIntelligence();
+                
+            } catch (error) {
+                console.error('Failed to load draft state:', error);
+            }
+        }
+        
+        async function loadAvailablePlayers() {
+            if (!currentSessionId) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/draft/available-players/${currentSessionId}`);
+                const data = await response.json();
+                
+                draftData.availablePlayers = data || [];
+                updateAvailablePlayersDisplay();
+                
+            } catch (error) {
+                console.error('Failed to load available players:', error);
+            }
+        }
+        
+        async function loadOptimalStrategy() {
+            if (!currentSessionId || !isMyTurn) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/draft/optimize/${currentSessionId}`);
+                const data = await response.json();
+                
+                if (data.success && data.optimal_strategy) {
+                    draftData.strategy = data.optimal_strategy;
+                    updateStrategyDisplay();
+                }
+                
+            } catch (error) {
+                console.error('Failed to load strategy:', error);
+            }
+        }
+        
+        async function simulateToMyTurn() {
+            if (!currentSessionId) return;
+            
+            document.getElementById('loadingTitle').textContent = 'Simulating AI Picks...';
+            document.getElementById('loadingMessage').textContent = 'AI opponents are making their selections';
+            showScreen('loadingScreen');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/draft/${currentSessionId}/simulate-round`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log(`Simulated ${data.picks_simulated} picks`);
+                    
+                    // Reload draft state
+                    await loadDraftState();
+                }
+                
+                showScreen('draftScreen');
+                
+            } catch (error) {
+                console.error('Simulation failed:', error);
+                showScreen('draftScreen');
+            }
+        }
+        
+        async function makePick(playerId, playerName) {
+            if (!currentSessionId || !isMyTurn) return;
+            
+            if (!confirm(`Draft ${playerName}?`)) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/draft/${currentSessionId}/make-pick`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player_id: playerId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log(`Drafted ${data.player.name} with pick #${data.pick_number}`);
+                    
+                    // Reload draft state
+                    await loadDraftState();
+                    
+                    // If not user's turn anymore, simulate to next user turn
+                    if (!isMyTurn) {
+                        setTimeout(simulateToMyTurn, 2000);
+                    }
+                } else {
+                    alert(`Failed to make pick: ${data.error}`);
+                }
+                
+            } catch (error) {
+                console.error('Pick failed:', error);
+                alert(`Failed to make pick: ${error.message}`);
+            }
+        }
+        
+        // Display update functions
+        function updateTurnStatus() {
+            const statusEl = document.getElementById('turnStatus');
+            if (isMyTurn) {
+                statusEl.innerHTML = '🎯 <strong>YOUR TURN!</strong> Select a player below';
+                statusEl.className = 'text-green-800 font-bold';
+            } else {
+                const currentTeam = getCurrentPickTeam(currentPickNumber);
+                statusEl.innerHTML = `🤖 Team ${currentTeam} is picking...`;
+                statusEl.className = 'text-blue-800';
+            }
+        }
+        
+        function updateAvailablePlayersDisplay() {
+            const container = document.getElementById('availablePlayers');
+            const players = draftData.availablePlayers.slice(0, 20); // Top 20
+            
+            container.innerHTML = players.map(player => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors" 
+                     onclick="${isMyTurn ? `makePick(${player.player_id}, '${player.name}')` : ''}">
+                    <div class="flex-1">
+                        <div class="font-semibold text-sm">${player.name}</div>
+                        <div class="text-xs text-gray-600">${player.position} - ${player.team}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500">ADP: ${player.adp || 'N/A'}</div>
+                        ${isMyTurn ? '<div class="text-xs text-blue-600 font-medium">Click to Draft</div>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateStrategyDisplay() {
+            if (!draftData.strategy) return;
+            
+            const strategy = draftData.strategy;
+            document.getElementById('strategyText').textContent = strategy.reasoning || 'Calculating optimal strategy...';
+            
+            const detailsContainer = document.getElementById('strategyDetails');
+            detailsContainer.innerHTML = `
+                <div class="text-sm">
+                    <div class="font-semibold text-gray-700 mb-2">Next 5 Positions:</div>
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        ${(strategy.next_positions || []).slice(0, 5).map((pos, i) => 
+                            `<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs ${i === 0 ? 'ring-2 ring-blue-400' : ''}">${pos}</span>`
+                        ).join('')}
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <span class="text-gray-600">Expected Points:</span>
+                            <div class="font-semibold">${strategy.expected_points?.toFixed(1) || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Confidence:</span>
+                            <div class="font-semibold text-green-600">${strategy.confidence?.toFixed(0) || 'N/A'}%</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function updateDraftBoard() {
+            // This would update the draft board with real picks
+            // Implementation depends on the draft board format you prefer
+        }
+        
+        function updateTeamIntelligence() {
+            // This would show intelligence about each team
+            // Implementation would use your team intelligence algorithms
+        }
+        
+        // Utility functions
+        function getCurrentPickTeam(pickNumber) {
+            const round = Math.ceil(pickNumber / 10);
+            const pickInRound = ((pickNumber - 1) % 10) + 1;
+            
+            // Snake draft logic
+            if (round % 2 === 1) {
+                return pickInRound;
+            } else {
+                return 10 - pickInRound + 1;
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Fantasy Football Draft Assistant 2025 loaded');
+        });
+    </script>
+</body>
+</html>

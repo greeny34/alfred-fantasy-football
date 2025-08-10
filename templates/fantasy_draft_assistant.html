@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Football Draft Assistant 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+        }
+        .card {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .hidden { display: none; }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .draft-board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+            font-size: 12px;
+        }
+        .draft-cell {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            min-height: 60px;
+        }
+        .user-team { background: #bfdbfe !important; }
+        .picked { background: #dcfce7 !important; }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    
+    <!-- Welcome Screen -->
+    <div id="welcomeScreen" class="min-h-screen flex items-center justify-center p-8">
+        <div class="max-w-4xl mx-auto text-center animate-fadeIn">
+            <div class="mb-12">
+                <h1 class="text-6xl font-bold text-white mb-6">
+                    🏈 Fantasy Football<br>
+                    <span class="text-yellow-300">Draft Assistant 2025</span>
+                </h1>
+                <p class="text-xl text-green-100 max-w-2xl mx-auto leading-relaxed">
+                    The most advanced fantasy football draft tool. Get AI-powered strategy recommendations, 
+                    opponent intelligence, and dynamic optimization to dominate your 2025 draft.
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8 mb-12">
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-4xl mb-4">🎯</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">AI Strategy Engine</h3>
+                    <p class="text-gray-600">Dynamic programming optimizer with real-time recommendations</p>
+                </div>
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-4xl mb-4">👥</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">Team Intelligence</h3>
+                    <p class="text-gray-600">Track all 10 teams with AI-powered opponent analysis</p>
+                </div>
+                <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                    <div class="text-4xl mb-4">📊</div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">Advanced Analytics</h3>
+                    <p class="text-gray-600">Position trends, value identification, and scarcity analysis</p>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <button onclick="showSetup()" class="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold py-4 px-8 rounded-full text-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                    Get Started 🚀
+                </button>
+                <br>
+                <button onclick="showDemo()" class="text-white hover:text-yellow-300 font-semibold underline">
+                    See Demo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Screen -->
+    <div id="setupScreen" class="hidden min-h-screen flex items-center justify-center p-8">
+        <div class="max-w-2xl mx-auto animate-fadeIn">
+            <div class="text-center mb-8">
+                <button onclick="showWelcome()" class="text-white hover:text-yellow-300 mb-6 inline-flex items-center font-semibold">
+                    ← Back to Welcome
+                </button>
+                <h2 class="text-4xl font-bold text-white mb-4">League Setup 2025</h2>
+                <p class="text-green-100 text-lg">Configure your draft preferences</p>
+            </div>
+
+            <div class="card rounded-2xl p-8 border border-white/20 shadow-xl">
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-3">League Name</label>
+                        <input type="text" id="leagueName" value="My Draft 2025" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-3">Your Draft Position</label>
+                        <select id="draftPosition" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg">
+                            <option value="1">Pick 1 - First Overall (Premium Players)</option>
+                            <option value="2">Pick 2 - Early Pick (Elite Talent)</option>
+                            <option value="3">Pick 3 - Early Pick (Elite Talent)</option>
+                            <option value="4">Pick 4 - Middle Pick (Balanced Strategy)</option>
+                            <option value="5">Pick 5 - Middle Pick (Balanced Strategy)</option>
+                            <option value="6" selected>Pick 6 - Middle Pick (Balanced Strategy)</option>
+                            <option value="7">Pick 7 - Middle Pick (Balanced Strategy)</option>
+                            <option value="8">Pick 8 - Late Pick (Value Hunting)</option>
+                            <option value="9">Pick 9 - Late Pick (Value Hunting)</option>
+                            <option value="10">Pick 10 - Last Pick (Back-to-Back Picks)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-3">Scoring Format</label>
+                        <select id="scoringFormat" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg">
+                            <option value="ppr">PPR (Point Per Reception) - WRs/TEs More Valuable</option>
+                            <option value="half_ppr">Half PPR (0.5 Points Per Reception) - Balanced</option>
+                            <option value="standard">Standard (No Reception Points) - RB Focused</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                        <h4 class="font-bold text-blue-900 mb-3 text-lg">🏈 2025 League Settings</h4>
+                        <div class="text-sm text-blue-800 space-y-2">
+                            <p>• <strong>10 Teams</strong> - Snake Draft Format</p>
+                            <p>• <strong>16 Rounds</strong> - QB, RB, RB, WR, WR, TE, FLEX, K, DST + 7 Bench</p>
+                            <p>• <strong>AI Opponents</strong> - Realistic drafting strategies</p>
+                            <p>• <strong>Live Optimization</strong> - Real-time recommendations</p>
+                        </div>
+                    </div>
+
+                    <button onclick="createSession()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-6 rounded-lg text-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        🎯 Create Draft Session
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Draft Interface -->
+    <div id="draftScreen" class="hidden min-h-screen p-4">
+        <div class="container mx-auto max-w-7xl animate-fadeIn">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">🏈 <span id="draftLeagueName">My Draft 2025</span></h1>
+                        <p class="text-gray-600">Pick #<span id="currentPick">6</span> • Round <span id="currentRound">1</span> • Your Position: <span id="yourPosition">6</span></p>
+                    </div>
+                    <button onclick="showWelcome()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+                        ← Exit Draft
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Draft Board -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h2 class="text-xl font-bold mb-4">📊 Draft Board</h2>
+                        <div class="draft-board" id="draftBoard">
+                            <!-- Draft board will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Strategy Panel -->
+                <div class="space-y-6">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-lg font-bold mb-4">🎯 AI Strategy</h3>
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                            <h4 class="font-semibold text-green-800 mb-2">Next Pick Recommendation</h4>
+                            <p class="text-green-700 text-sm" id="strategyText">
+                                Target elite RB or WR. With pick #6, you're in the sweet spot for top-tier talent.
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-2" id="strategyTags">
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">RB Priority</span>
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Elite WR</span>
+                            <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">BPA</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-lg font-bold mb-4">👥 Available Players</h3>
+                        <div id="availablePlayers" class="space-y-2 max-h-64 overflow-y-auto">
+                            <!-- Players will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock data for demonstration
+        const mockPlayers = [
+            {name: "Christian McCaffrey", position: "RB", team: "SF", adp: 1.2},
+            {name: "Austin Ekeler", position: "RB", team: "LAC", adp: 2.1},
+            {name: "Derrick Henry", position: "RB", team: "TEN", adp: 3.5},
+            {name: "Davante Adams", position: "WR", team: "LV", adp: 4.2},
+            {name: "Stefon Diggs", position: "WR", team: "BUF", adp: 5.1},
+            {name: "Saquon Barkley", position: "RB", team: "NYG", adp: 6.3},
+            {name: "Tyreek Hill", position: "WR", team: "MIA", adp: 6.8},
+            {name: "Josh Jacobs", position: "RB", team: "LV", adp: 7.2},
+            {name: "A.J. Brown", position: "WR", team: "PHI", adp: 8.1},
+            {name: "Nick Chubb", position: "RB", team: "CLE", adp: 8.9}
+        ];
+        
+        let currentPickNumber = 6;
+        let draftedPlayers = [];
+        let userPosition = 6;
+        
+        // Screen management
+        function showScreen(screenId) {
+            const screens = ['welcomeScreen', 'setupScreen', 'draftScreen'];
+            screens.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function showWelcome() {
+            showScreen('welcomeScreen');
+        }
+
+        function showSetup() {
+            showScreen('setupScreen');
+        }
+        
+        function showDemo() {
+            // Skip setup and go straight to draft
+            document.getElementById('leagueName').value = 'Demo League 2025';
+            document.getElementById('draftPosition').value = '6';
+            createSession();
+        }
+
+        function createSession() {
+            const leagueName = document.getElementById('leagueName').value || 'My Draft 2025';
+            const position = parseInt(document.getElementById('draftPosition').value);
+            const format = document.getElementById('scoringFormat').value;
+            
+            userPosition = position;
+            currentPickNumber = position;
+            
+            // Update draft screen
+            document.getElementById('draftLeagueName').textContent = leagueName;
+            document.getElementById('yourPosition').textContent = position;
+            document.getElementById('currentPick').textContent = currentPickNumber;
+            document.getElementById('currentRound').textContent = Math.ceil(currentPickNumber / 10);
+            
+            initializeDraftBoard();
+            updateAvailablePlayers();
+            updateStrategy();
+            
+            showScreen('draftScreen');
+        }
+        
+        function initializeDraftBoard() {
+            const board = document.getElementById('draftBoard');
+            board.innerHTML = '';
+            
+            // Create team headers
+            for (let team = 1; team <= 10; team++) {
+                const header = document.createElement('div');
+                header.className = `draft-cell font-bold ${team === userPosition ? 'user-team' : ''}`;
+                header.textContent = team === userPosition ? `You (${team})` : `Team ${team}`;
+                board.appendChild(header);
+            }
+            
+            // Create pick cells for first 3 rounds
+            for (let round = 1; round <= 3; round++) {
+                for (let pick = 1; pick <= 10; pick++) {
+                    const pickNumber = (round - 1) * 10 + pick;
+                    const teamNumber = pick;
+                    
+                    const cell = document.createElement('div');
+                    cell.className = `draft-cell ${teamNumber === userPosition ? 'user-team' : ''}`;
+                    cell.id = `pick-${pickNumber}`;
+                    cell.innerHTML = `<div class="text-xs text-gray-500">Pick ${pickNumber}</div><div class="mt-1">—</div>`;
+                    
+                    if (pickNumber < currentPickNumber) {
+                        // Simulate some picks
+                        const mockPick = mockPlayers[pickNumber - 1];
+                        if (mockPick) {
+                            cell.className += ' picked';
+                            cell.innerHTML = `
+                                <div class="text-xs text-gray-500">Pick ${pickNumber}</div>
+                                <div class="font-semibold text-xs">${mockPick.name}</div>
+                                <div class="text-xs text-gray-600">${mockPick.position}</div>
+                            `;
+                        }
+                    } else if (pickNumber === currentPickNumber) {
+                        cell.className += ' ring-2 ring-yellow-400';
+                        cell.innerHTML = `<div class="text-xs text-gray-500">Pick ${pickNumber}</div><div class="mt-1 text-yellow-600 font-bold">YOUR TURN</div>`;
+                    }
+                    
+                    board.appendChild(cell);
+                }
+            }
+        }
+        
+        function updateAvailablePlayers() {
+            const container = document.getElementById('availablePlayers');
+            const available = mockPlayers.slice(currentPickNumber - 1, currentPickNumber + 9);
+            
+            container.innerHTML = available.map((player, index) => `
+                <div class="flex justify-between items-center p-2 bg-gray-50 rounded hover:bg-blue-50 cursor-pointer" 
+                     onclick="draftPlayer('${player.name}', '${player.position}', ${index})">
+                    <div>
+                        <div class="font-semibold text-sm">${player.name}</div>
+                        <div class="text-xs text-gray-600">${player.position} - ${player.team}</div>
+                    </div>
+                    <div class="text-xs text-gray-500">ADP: ${player.adp}</div>
+                </div>
+            `).join('');
+        }
+        
+        function updateStrategy() {
+            const strategies = [
+                "Target elite RB or WR. You're in the sweet spot for top-tier talent.",
+                "Consider RB scarcity. Only a few RB1s left.",
+                "WR depth is strong. Good value available later.",
+                "Look for positional value. Target tier breaks.",
+                "Best Player Available. Don't reach for need."
+            ];
+            
+            const tags = [
+                ['RB Priority', 'Elite WR', 'BPA'],
+                ['RB Scarcity', 'Value Hunt', 'Tier Break'],
+                ['WR Depth', 'Late Value', 'Patient'],
+                ['BPA Focus', 'Upside Play', 'Safe Floor'],
+                ['Final Push', 'Need Based', 'Complete Team']
+            ];
+            
+            const round = Math.ceil(currentPickNumber / 10);
+            const strategyIndex = Math.min(round - 1, strategies.length - 1);
+            
+            document.getElementById('strategyText').textContent = strategies[strategyIndex];
+            
+            const tagContainer = document.getElementById('strategyTags');
+            tagContainer.innerHTML = tags[strategyIndex].map(tag => 
+                `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">${tag}</span>`
+            ).join('');
+        }
+        
+        function draftPlayer(name, position, index) {
+            if (confirm(`Draft ${name} (${position})?`)) {
+                // Update the draft board
+                const cell = document.getElementById(`pick-${currentPickNumber}`);
+                cell.className = cell.className.replace('ring-2 ring-yellow-400', '') + ' picked';
+                cell.innerHTML = `
+                    <div class="text-xs text-gray-500">Pick ${currentPickNumber}</div>
+                    <div class="font-semibold text-xs">${name}</div>
+                    <div class="text-xs text-gray-600">${position}</div>
+                `;
+                
+                // Move to next user pick
+                currentPickNumber += 20; // Next round in snake draft
+                if (currentPickNumber <= 30) {
+                    document.getElementById('currentPick').textContent = currentPickNumber;
+                    document.getElementById('currentRound').textContent = Math.ceil(currentPickNumber / 10);
+                    
+                    // Simulate AI picks in between
+                    setTimeout(() => {
+                        simulateAIPicks();
+                        updateAvailablePlayers();
+                        updateStrategy();
+                    }, 1000);
+                } else {
+                    alert('🎉 Draft Complete! Great job building your 2025 team!');
+                }
+            }
+        }
+        
+        function simulateAIPicks() {
+            // This is where AI would make picks for other teams
+            // For demo, we'll just mark them as picked
+            for (let i = currentPickNumber - 19; i < currentPickNumber; i++) {
+                if (i !== userPosition && i > 0) {
+                    const cell = document.getElementById(`pick-${i}`);
+                    if (cell && !cell.classList.contains('picked')) {
+                        const mockPick = mockPlayers[Math.floor(Math.random() * mockPlayers.length)];
+                        cell.className += ' picked';
+                        cell.innerHTML = `
+                            <div class="text-xs text-gray-500">Pick ${i}</div>
+                            <div class="font-semibold text-xs">${mockPick.name}</div>
+                            <div class="text-xs text-gray-600">${mockPick.position}</div>
+                        `;
+                    }
+                }
+            }
+            
+            // Highlight next user pick
+            const nextCell = document.getElementById(`pick-${currentPickNumber}`);
+            if (nextCell) {
+                nextCell.className += ' ring-2 ring-yellow-400';
+                nextCell.innerHTML = `<div class="text-xs text-gray-500">Pick ${currentPickNumber}</div><div class="mt-1 text-yellow-600 font-bold">YOUR TURN</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
