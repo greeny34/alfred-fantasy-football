@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Football Rankings Spreadsheet</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .spreadsheet-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        .spreadsheet-table {
+            min-width: 1200px;
+            font-size: 0.875rem;
+        }
+        
+        .spreadsheet-table th {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px 6px;
+            text-align: center;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+        }
+        
+        .spreadsheet-table th:hover {
+            background-color: #e9ecef;
+        }
+        
+        .sortable {
+            position: relative;
+            padding-right: 20px;
+        }
+        
+        .sort-icon {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7em;
+            opacity: 0.5;
+        }
+        
+        .sort-active {
+            opacity: 1;
+            color: #007bff;
+        }
+        
+        .spreadsheet-table td {
+            border: 1px solid #dee2e6;
+            padding: 6px 4px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .player-name {
+            text-align: left !important;
+            min-width: 150px;
+            max-width: 200px;
+            font-weight: 500;
+        }
+        
+        .team-cell {
+            min-width: 50px;
+            font-weight: 500;
+        }
+        
+        .position-cell {
+            min-width: 40px;
+            font-weight: bold;
+        }
+        
+        .position-QB { color: #dc3545; }
+        .position-RB { color: #28a745; }
+        .position-WR { color: #007bff; }
+        .position-TE { color: #ffc107; }
+        .position-K { color: #6c757d; }
+        .position-DST { color: #6f42c1; }
+        
+        .rank-cell {
+            min-width: 45px;
+        }
+        
+        .stat-cell {
+            min-width: 60px;
+            font-weight: 500;
+        }
+        
+        .mean-cell { background-color: #e3f2fd; }
+        .min-cell { background-color: #e8f5e8; }
+        .max-cell { background-color: #ffebee; }
+        .stdev-cell { background-color: #fff3e0; }
+        
+        /* Zebra striping */
+        .spreadsheet-table tbody tr:nth-child(even) {
+            background-color: rgba(0,0,0,0.02);
+        }
+        
+        /* Hover effect */
+        .spreadsheet-table tbody tr:hover {
+            background-color: rgba(0,123,255,0.05);
+        }
+        
+        /* Fixed first columns */
+        .player-name {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background-color: white;
+        }
+        
+        .spreadsheet-table tbody tr:nth-child(even) .player-name {
+            background-color: rgba(0,0,0,0.02);
+        }
+        
+        .spreadsheet-table tbody tr:hover .player-name {
+            background-color: rgba(0,123,255,0.05);
+        }
+        
+        /* Better number formatting */
+        .number-cell {
+            font-family: 'Courier New', monospace;
+            text-align: right;
+            padding-right: 8px;
+        }
+        
+        .default-rank {
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .unranked-player {
+            background-color: #f8f9fa;
+            opacity: 0.7;
+        }
+        
+        .unranked-player .player-name {
+            color: #6c757d;
+        }
+        
+        .rank-changed {
+            background-color: #fff3cd !important;
+            border: 2px solid #ffc107 !important;
+        }
+        
+        .rank-improved {
+            background-color: #d1ecf1 !important;
+            border: 2px solid #17a2b8 !important;
+        }
+        
+        .rank-declined {
+            background-color: #f8d7da !important;
+            border: 2px solid #dc3545 !important;
+        }
+        
+        .controls {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .sort-icon {
+            margin-left: 5px;
+            font-size: 0.8em;
+        }
+        
+        .sort-asc { color: #28a745; }
+        .sort-desc { color: #dc3545; }
+        
+        .rank-source {
+            background-color: #f8f9fa;
+            font-weight: 500;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .view-toggle {
+            margin-bottom: 20px;
+        }
+        
+        .compact-header {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            height: 100px;
+            width: 30px;
+            padding: 2px;
+        }
+        
+        @media (max-width: 768px) {
+            .spreadsheet-table {
+                font-size: 0.75rem;
+            }
+            
+            .spreadsheet-table th,
+            .spreadsheet-table td {
+                padding: 4px 2px;
+            }
+        }
+        
+        /* Sidebar styles */
+        .settings-sidebar {
+            transition: all 0.3s ease;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .settings-sidebar.collapsed {
+            margin-left: -100%;
+        }
+        
+        .sidebar-toggle {
+            position: fixed;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1000;
+            transition: left 0.3s ease;
+        }
+        
+        .sidebar-toggle.sidebar-collapsed {
+            left: 15px;
+        }
+        
+        .main-content {
+            transition: all 0.3s ease;
+        }
+        
+        .main-content.expanded {
+            margin-left: -250px;
+        }
+        
+        .team-bias-item, .player-adjustment-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .player-search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-top: none;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .player-search-item {
+            padding: 6px 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            font-size: 0.875rem;
+        }
+        
+        .player-search-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .player-search-wrapper {
+            position: relative;
+        }
+        
+        .settings-section-compact {
+            background: white;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .settings-section-compact h6 {
+            color: #007bff;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Top Controls Bar -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded">
+                    <div class="d-flex align-items-center">
+                        <h4 class="mb-0 me-4">🏈 FF Rankings</h4>
+                        
+                        <!-- Position Selection -->
+                        <div class="btn-group me-3" role="group">
+                            <input type="radio" class="btn-check" name="positionRadio" id="posQB" value="QB" checked>
+                            <label class="btn btn-outline-danger btn-sm" for="posQB">QB</label>
+                            
+                            <input type="radio" class="btn-check" name="positionRadio" id="posRB" value="RB">
+                            <label class="btn btn-outline-success btn-sm" for="posRB">RB</label>
+                            
+                            <input type="radio" class="btn-check" name="positionRadio" id="posWR" value="WR">
+                            <label class="btn btn-outline-primary btn-sm" for="posWR">WR</label>
+                            
+                            <input type="radio" class="btn-check" name="positionRadio" id="posTE" value="TE">
+                            <label class="btn btn-outline-warning btn-sm" for="posTE">TE</label>
+                            
+                            <input type="radio" class="btn-check" name="positionRadio" id="posK" value="K">
+                            <label class="btn btn-outline-secondary btn-sm" for="posK">K</label>
+                            
+                            <input type="radio" class="btn-check" name="positionRadio" id="posDST" value="DST">
+                            <label class="btn btn-outline-dark btn-sm" for="posDST">DST</label>
+                        </div>
+                        
+                        <!-- Quick Filters -->
+                        <input type="text" id="searchInput" class="form-control form-control-sm me-2" style="width: 200px;" placeholder="Search players...">
+                        <select id="teamFilter" class="form-select form-select-sm me-2" style="width: 100px;">
+                            <option value="">All Teams</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-flex align-items-center">
+                        <div class="form-check form-switch me-3">
+                            <input class="form-check-input" type="checkbox" id="compactMode">
+                            <label class="form-check-label" for="compactMode">Compact</label>
+                        </div>
+                        <div class="form-check form-switch me-3">
+                            <input class="form-check-input" type="checkbox" id="hideNAPlayers" checked>
+                            <label class="form-check-label" for="hideNAPlayers">Hide NA</label>
+                        </div>
+                        <button class="btn btn-success btn-sm me-2" onclick="loadSpreadsheet()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                        <a href="/adp" class="btn btn-outline-warning btn-sm me-2">
+                            <i class="fas fa-chart-line"></i> ADP Rankings
+                        </a>
+                        <a href="/draft" class="btn btn-primary btn-sm me-2">
+                            <i class="fas fa-chess-board"></i> Draft Board
+                        </a>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="toggleSidebar()">
+                            <i class="fas fa-cog"></i> <span id="toggleText">Hide Settings</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-3 settings-sidebar" id="settingsSidebar">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">⚙️ Settings</h5>
+                </div>
+                
+                <!-- Position Limits -->
+                <div class="settings-section-compact">
+                    <h6><i class="fas fa-users"></i> Position Limits</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small">QB</label>
+                            <input type="number" class="form-control form-control-sm" id="position_limit_qb" min="5" max="50" value="30">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">RB</label>
+                            <input type="number" class="form-control form-control-sm" id="position_limit_rb" min="10" max="100" value="60">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">WR</label>
+                            <input type="number" class="form-control form-control-sm" id="position_limit_wr" min="15" max="120" value="75">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">TE</label>
+                            <input type="number" class="form-control form-control-sm" id="position_limit_te" min="5" max="50" value="30">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- CV Multipliers -->
+                <div class="settings-section-compact">
+                    <h6><i class="fas fa-calculator"></i> CV Multipliers</h6>
+                    <div class="mb-2">
+                        <label class="form-label small">Standard: <span id="cv_multiplier_standard_value">1.0x</span></label>
+                        <input type="range" class="form-range" id="cv_multiplier_standard" 
+                               min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateRangeValue('cv_multiplier_standard')">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">High: <span id="cv_multiplier_high_value">2.0x</span></label>
+                        <input type="range" class="form-range" id="cv_multiplier_high" 
+                               min="1.5" max="5.0" step="0.1" value="2.0" oninput="updateRangeValue('cv_multiplier_high')">
+                    </div>
+                </div>
+                
+                <!-- Team Bias -->
+                <div class="settings-section-compact">
+                    <h6><i class="fas fa-heart"></i> Team Bias</h6>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="team_bias_enabled" checked>
+                        <label class="form-check-label small" for="team_bias_enabled">Enable Team Bias</label>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <label class="form-label small">Favorite %: <span id="default_favorite_bias_value">10%</span></label>
+                            <input type="range" class="form-range" id="default_favorite_bias" 
+                                   min="0" max="25" step="1" value="10" oninput="updateRangeValue('default_favorite_bias')">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Hated %: <span id="default_hated_bias_value">10%</span></label>
+                            <input type="range" class="form-range" id="default_hated_bias" 
+                                   min="0" max="25" step="1" value="10" oninput="updateRangeValue('default_hated_bias')">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="form-label small text-success">Favorite Teams</label>
+                            <div id="favoriteTeams" class="mb-2">
+                                <!-- Teams will be populated here -->
+                            </div>
+                            <select class="form-select form-select-sm" id="addFavoriteTeam">
+                                <option value="">Add favorite...</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-danger">Hated Teams</label>
+                            <div id="hatedTeams" class="mb-2">
+                                <!-- Teams will be populated here -->
+                            </div>
+                            <select class="form-select form-select-sm" id="addHatedTeam">
+                                <option value="">Add hated...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Player Adjustments -->
+                <div class="settings-section-compact">
+                    <h6><i class="fas fa-user-plus"></i> Player Adjustments</h6>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="player_adjustments_enabled" checked>
+                        <label class="form-check-label small" for="player_adjustments_enabled">Enable Player Adjustments</label>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <label class="form-label small">Under %: <span id="default_undervalued_adjustment_value">10%</span></label>
+                            <input type="range" class="form-range" id="default_undervalued_adjustment" 
+                                   min="0" max="50" step="5" value="10" oninput="updateRangeValue('default_undervalued_adjustment')">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Over %: <span id="default_overvalued_adjustment_value">10%</span></label>
+                            <input type="range" class="form-range" id="default_overvalued_adjustment" 
+                                   min="0" max="50" step="5" value="10" oninput="updateRangeValue('default_overvalued_adjustment')">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="form-label small text-success">Undervalued Players</label>
+                            <div id="undervaluedPlayers" class="mb-2">
+                                <!-- Players will be populated here -->
+                            </div>
+                            <div class="player-search-wrapper">
+                                <input type="text" class="form-control form-control-sm" 
+                                       id="searchUndervalued" placeholder="Search undervalued...">
+                                <div id="searchUndervaluedResults" class="player-search-results"></div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-danger">Overvalued Players</label>
+                            <div id="overvaluedPlayers" class="mb-2">
+                                <!-- Players will be populated here -->
+                            </div>
+                            <div class="player-search-wrapper">
+                                <input type="text" class="form-control form-control-sm" 
+                                       id="searchOvervalued" placeholder="Search overvalued...">
+                                <div id="searchOvervaluedResults" class="player-search-results"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Strategy Selection -->
+                <div class="settings-section-compact">
+                    <h6><i class="fas fa-chess"></i> Strategy</h6>
+                    <select class="form-select form-select-sm" id="default_strategy">
+                        <option value="standard">Standard (Mean Rankings)</option>
+                        <option value="aggressive">Aggressive (Mean - CV Impact)</option>
+                        <option value="conservative">Conservative (Mean + CV Impact)</option>
+                        <option value="aggressive_high">Aggressive High (Mean - 2x CV Impact)</option>
+                        <option value="conservative_high">Conservative High (Mean + 2x CV Impact)</option>
+                    </select>
+                </div>
+                
+                <!-- Draft Assistant -->
+                <div class="settings-section-compact">
+                    <h6><i class="fas fa-magic"></i> Draft Assistant</h6>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="draft_assistant_enabled">
+                        <label class="form-check-label small" for="draft_assistant_enabled">Enable Draft Assistant</label>
+                    </div>
+                    <div id="draftAssistantPanel" style="display: none;">
+                        <button class="btn btn-primary btn-sm w-100 mb-2" onclick="startDraft()">
+                            <i class="fas fa-play"></i> Start New Draft
+                        </button>
+                        <div id="draftRecommendations" class="small">
+                            <!-- Recommendations will appear here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success btn-sm" onclick="saveAndRecalculate()">
+                        <i class="fas fa-save"></i> Save & Recalculate
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="resetToDefaults()">
+                        <i class="fas fa-undo"></i> Reset to Defaults
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-md-9 main-content" id="mainContent">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 id="resultsTitle">Fantasy Football Rankings Spreadsheet</h3>
+                    <div class="d-flex align-items-center">
+                        <div class="form-check form-switch me-3">
+                            <input class="form-check-input" type="checkbox" id="compactMode">
+                            <label class="form-check-label" for="compactMode">Compact View</label>
+                        </div>
+                        <div id="loadingSpinner" class="spinner-border spinner-border-sm text-primary d-none" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="spreadsheet-container">
+                    <div id="spreadsheetContent">
+                        <div class="text-center text-muted p-5">
+                            <h5><i class="fas fa-table"></i> Fantasy Football Rankings Spreadsheet</h5>
+                            <p>Click "Apply" to load player data with all ranking sources</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay d-none">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+            <h5>Loading Rankings Data...</h5>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentData = [];
+        let currentSources = [];
+        let sortColumn = '';
+        let sortDirection = 'asc';
+        let currentSettings = {};
+        let currentDraftSession = null;
+        
+        // Load initial data
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTeams();
+            loadSettings();
+            loadSpreadsheet();
+            setupPlayerSearch();
+            setupDraftAssistant();
+        });
+        
+        function loadTeams() {
+            fetch('/api/players/list')
+                .then(response => response.json())
+                .then(players => {
+                    const teams = [...new Set(players.map(p => p.team))].sort();
+                    
+                    // Populate main team filter
+                    const teamSelect = document.getElementById('teamFilter');
+                    teams.forEach(team => {
+                        const option = document.createElement('option');
+                        option.value = team;
+                        option.textContent = team;
+                        teamSelect.appendChild(option);
+                    });
+                    
+                    // Populate bias team dropdowns
+                    const favoriteSelect = document.getElementById('addFavoriteTeam');
+                    const hatedSelect = document.getElementById('addHatedTeam');
+                    
+                    teams.forEach(team => {
+                        const favOption = new Option(team, team);
+                        const hatedOption = new Option(team, team);
+                        favoriteSelect.add(favOption);
+                        hatedSelect.add(hatedOption);
+                    });
+                    
+                    // Add event listeners
+                    favoriteSelect.addEventListener('change', function() {
+                        if (this.value) {
+                            addTeamPreference(this.value, 'favorite');
+                            this.value = '';
+                        }
+                    });
+                    
+                    hatedSelect.addEventListener('change', function() {
+                        if (this.value) {
+                            addTeamPreference(this.value, 'hated');
+                            this.value = '';
+                        }
+                    });
+                });
+        }
+        
+        // Load settings and populate compact form
+        function loadSettings() {
+            Promise.all([
+                fetch('/api/settings').then(r => r.json()),
+                fetch('/api/team-preferences').then(r => r.json()),
+                fetch('/api/player-adjustments').then(r => r.json())
+            ]).then(([settings, teamPrefs, playerAdjs]) => {
+                currentSettings = settings;
+                populateCompactSettings(settings);
+                renderTeamPreferences(teamPrefs);
+                renderPlayerAdjustments(playerAdjs);
+            }).catch(error => console.error('Error loading settings:', error));
+        }
+        
+        // Populate compact settings form
+        function populateCompactSettings(settings) {
+            Object.keys(settings).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    const value = settings[key];
+                    if (element.type === 'checkbox') {
+                        element.checked = value === 'true' || value === true;
+                    } else if (element.type === 'range') {
+                        element.value = parseFloat(value);
+                        updateRangeValue(key);
+                    } else {
+                        element.value = value;
+                    }
+                }
+            });
+        }
+        
+        // Update range value displays
+        function updateRangeValue(elementId) {
+            const range = document.getElementById(elementId);
+            const display = document.getElementById(elementId + '_value');
+            if (range && display) {
+                let value = parseFloat(range.value);
+                if (elementId.includes('multiplier')) {
+                    display.textContent = value.toFixed(1) + 'x';
+                } else {
+                    display.textContent = Math.round(value) + '%';
+                }
+            }
+        }
+        
+        // Display team bias summary
+        function displayTeamBias(teamPrefs) {
+            const container = document.getElementById('teamBiasCompact');
+            const favorites = Object.values(teamPrefs).filter(p => p.preference_type === 'favorite');
+            const hated = Object.values(teamPrefs).filter(p => p.preference_type === 'hated');
+            
+            let html = '';
+            if (favorites.length > 0) {
+                html += '<div class="text-success">♥ ' + favorites.map(f => f.team_name).join(', ') + '</div>';
+            }
+            if (hated.length > 0) {
+                html += '<div class="text-danger">✗ ' + hated.map(h => h.team_name).join(', ') + '</div>';
+            }
+            if (html === '') {
+                html = '<div class="text-muted">No team biases</div>';
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // Save settings and recalculate
+        function saveAndRecalculate() {
+            const formData = gatherCompactFormData();
+            
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showMessage('Settings saved!', 'success');
+                    loadSpreadsheet(); // Recalculate with new settings
+                } else {
+                    showMessage('Error saving settings', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Error saving settings', 'error');
+                console.error('Error:', error);
+            });
+        }
+        
+        // Gather form data from compact settings
+        function gatherCompactFormData() {
+            const formData = {};
+            const inputs = document.querySelectorAll('#position_limit_qb, #position_limit_rb, #position_limit_wr, #position_limit_te, #cv_multiplier_standard, #cv_multiplier_high, #team_bias_enabled');
+            
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    formData[input.id] = input.checked.toString();
+                } else {
+                    formData[input.id] = input.value;
+                }
+            });
+            
+            return formData;
+        }
+        
+        // Show temporary message
+        function showMessage(message, type) {
+            // Create a temporary toast-like message
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 200px;';
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        // Toggle sidebar visibility
+        function toggleSidebar() {
+            const sidebar = document.getElementById('settingsSidebar');
+            const mainContent = document.getElementById('mainContent');
+            const toggleText = document.getElementById('toggleText');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('expanded');
+                mainContent.className = mainContent.className.replace('col-md-12', 'col-md-9');
+                toggleText.textContent = 'Hide Settings';
+            } else {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                mainContent.className = mainContent.className.replace('col-md-9', 'col-md-12');
+                toggleText.textContent = 'Show Settings';
+            }
+        }
+        
+        // Render team preferences
+        function renderTeamPreferences(teamPrefs) {
+            const favoriteContainer = document.getElementById('favoriteTeams');
+            const hatedContainer = document.getElementById('hatedTeams');
+            
+            favoriteContainer.innerHTML = '';
+            hatedContainer.innerHTML = '';
+            
+            Object.values(teamPrefs).forEach(pref => {
+                const item = createTeamPreferenceItem(pref);
+                if (pref.preference_type === 'favorite') {
+                    favoriteContainer.appendChild(item);
+                } else {
+                    hatedContainer.appendChild(item);
+                }
+            });
+        }
+        
+        // Create team preference item
+        function createTeamPreferenceItem(pref) {
+            const div = document.createElement('div');
+            div.className = 'team-bias-item';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="small">
+                        <strong>${pref.team_name}</strong>
+                        <span class="badge bg-secondary ms-1">${pref.bias_percentage}%</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeTeamPreference('${pref.team_name}', '${pref.preference_type}')" style="padding: 2px 6px;">
+                        <i class="fas fa-times" style="font-size: 0.7rem;"></i>
+                    </button>
+                </div>
+            `;
+            return div;
+        }
+        
+        // Add team preference
+        function addTeamPreference(team, type) {
+            const percentage = type === 'favorite' ? 
+                document.getElementById('default_favorite_bias').value :
+                document.getElementById('default_hated_bias').value;
+            
+            const data = {
+                team_name: team,
+                preference_type: type,
+                bias_percentage: parseFloat(percentage)
+            };
+            
+            fetch('/api/team-preferences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                loadSettings();
+                showMessage(`Added ${team} as ${type} team`, 'success');
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        // Remove team preference
+        function removeTeamPreference(team, type) {
+            fetch(`/api/team-preferences/${team}/${type}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(result => {
+                loadSettings();
+                showMessage(`Removed ${team} from ${type} teams`, 'success');
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        // Render player adjustments
+        function renderPlayerAdjustments(playerAdjs) {
+            const undervaluedContainer = document.getElementById('undervaluedPlayers');
+            const overvaluedContainer = document.getElementById('overvaluedPlayers');
+            
+            undervaluedContainer.innerHTML = '';
+            overvaluedContainer.innerHTML = '';
+            
+            Object.values(playerAdjs).forEach(adj => {
+                const item = createPlayerAdjustmentItem(adj);
+                if (adj.adjustment_type === 'undervalued') {
+                    undervaluedContainer.appendChild(item);
+                } else {
+                    overvaluedContainer.appendChild(item);
+                }
+            });
+        }
+        
+        // Create player adjustment item
+        function createPlayerAdjustmentItem(adj) {
+            const div = document.createElement('div');
+            div.className = 'player-adjustment-item';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="small">
+                        <strong>${adj.name}</strong>
+                        <span class="badge bg-primary ms-1">${adj.position}</span>
+                        <div class="text-muted" style="font-size: 0.75rem;">${adj.adjustment_percentage}%</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removePlayerAdjustment(${adj.player_id}, '${adj.adjustment_type}')" style="padding: 2px 6px;">
+                        <i class="fas fa-times" style="font-size: 0.7rem;"></i>
+                    </button>
+                </div>
+            `;
+            return div;
+        }
+        
+        // Setup player search functionality
+        function setupPlayerSearch() {
+            // Load all players for search
+            fetch('/api/players/list')
+                .then(response => response.json())
+                .then(players => {
+                    window.allPlayers = players.sort((a, b) => a.name.localeCompare(b.name));
+                    setupSearchInput('searchUndervalued', 'searchUndervaluedResults', 'undervalued');
+                    setupSearchInput('searchOvervalued', 'searchOvervaluedResults', 'overvalued');
+                });
+        }
+        
+        // Setup individual search input with autocomplete
+        function setupSearchInput(inputId, resultsId, adjustmentType) {
+            const input = document.getElementById(inputId);
+            const results = document.getElementById(resultsId);
+            
+            input.addEventListener('input', function() {
+                const query = this.value.toLowerCase().trim();
+                
+                if (query.length < 2) {
+                    results.style.display = 'none';
+                    return;
+                }
+                
+                const matches = window.allPlayers.filter(p => 
+                    p.name.toLowerCase().includes(query)
+                ).slice(0, 8); // Limit to 8 results
+                
+                if (matches.length === 0) {
+                    results.style.display = 'none';
+                    return;
+                }
+                
+                results.innerHTML = '';
+                matches.forEach(player => {
+                    const div = document.createElement('div');
+                    div.className = 'player-search-item';
+                    div.innerHTML = `
+                        <strong>${player.name}</strong> 
+                        <span class="badge bg-primary position-${player.position}" style="font-size: 0.7rem;">${player.position}</span>
+                        <span class="badge bg-secondary" style="font-size: 0.7rem;">${player.team}</span>
+                    `;
+                    div.onclick = function() {
+                        addPlayerAdjustment(player, adjustmentType);
+                        input.value = '';
+                        results.style.display = 'none';
+                    };
+                    results.appendChild(div);
+                });
+                
+                results.style.display = 'block';
+            });
+            
+            // Hide results when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !results.contains(e.target)) {
+                    results.style.display = 'none';
+                }
+            });
+        }
+        
+        // Add player adjustment
+        function addPlayerAdjustment(player, type) {
+            const percentage = type === 'undervalued' ? 
+                document.getElementById('default_undervalued_adjustment').value :
+                document.getElementById('default_overvalued_adjustment').value;
+            
+            const data = {
+                player_id: player.id,
+                adjustment_type: type,
+                adjustment_percentage: parseFloat(percentage),
+                notes: ''
+            };
+            
+            fetch('/api/player-adjustments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                loadSettings();
+                showMessage(`Added ${player.name} as ${type}`, 'success');
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        // Remove player adjustment
+        function removePlayerAdjustment(playerId, type) {
+            fetch(`/api/player-adjustments/${playerId}/${type}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(result => {
+                loadSettings();
+                showMessage(`Removed player adjustment`, 'success');
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        // Reset to defaults
+        function resetToDefaults() {
+            if (confirm('Are you sure you want to reset all settings to defaults?')) {
+                fetch('/api/settings/reset', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    loadSettings();
+                    showMessage('Settings reset to defaults', 'success');
+                    loadSpreadsheet(); // Recalculate with defaults
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+        
+        // Draft Assistant Functions
+        function setupDraftAssistant() {
+            const draftToggle = document.getElementById('draft_assistant_enabled');
+            const draftPanel = document.getElementById('draftAssistantPanel');
+            
+            draftToggle.addEventListener('change', function() {
+                draftPanel.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+        
+        function startDraft() {
+            // Create new draft session
+            const sessionData = {
+                league_name: `Draft ${new Date().toLocaleDateString()}`,
+                draft_position: 6,
+                scoring: 'ppr'
+            };
+            
+            fetch('/api/draft/new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sessionData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    currentDraftSession = result.session_id;
+                    showMessage('Draft started!', 'success');
+                    loadDraftRecommendations();
+                } else {
+                    showMessage('Error starting draft', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Error starting draft', 'error');
+                console.error('Error:', error);
+            });
+        }
+        
+        function loadDraftRecommendations() {
+            if (!currentDraftSession) return;
+            
+            fetch(`/api/draft/recommendations/${currentDraftSession}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderDraftRecommendations(data);
+                    } else {
+                        showMessage('Error loading recommendations', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading recommendations:', error);
+                    showMessage('Error loading recommendations', 'error');
+                });
+        }
+        
+        function renderDraftRecommendations(data) {
+            const container = document.getElementById('draftRecommendations');
+            
+            let html = '<div class="draft-recommendations">';
+            
+            // Top recommendation
+            if (data.top_recommendations && data.top_recommendations.length > 0) {
+                const top = data.top_recommendations[0];
+                html += `
+                    <div class="mb-3 p-2 bg-success text-white rounded">
+                        <strong><i class="fas fa-star"></i> TOP PICK</strong><br>
+                        <div class="fw-bold">${top.name} (${top.position})</div>
+                        <div class="small">Score: ${top.total_score} | ${top.tier} tier</div>
+                        <div class="small">${top.reasoning}</div>
+                        <button class="btn btn-light btn-sm mt-1" onclick="draftPlayer(${top.player_id}, '${top.name}')">
+                            <i class="fas fa-plus"></i> Draft
+                        </button>
+                    </div>
+                `;
+            }
+            
+            // Best values
+            if (data.best_values && data.best_values.length > 0) {
+                html += '<div class="mb-2"><strong><i class="fas fa-gem"></i> Best Values:</strong></div>';
+                data.best_values.slice(0, 3).forEach(player => {
+                    html += `
+                        <div class="mb-1 p-1 bg-warning text-dark rounded small">
+                            <strong>${player.name}</strong> (${player.position}) - ${player.value_reason}
+                            <button class="btn btn-dark btn-sm float-end" style="padding: 1px 4px; font-size: 0.7rem;" onclick="draftPlayer(${player.player_id}, '${player.name}')">+</button>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Best by position
+            if (data.best_by_position) {
+                html += '<div class="mb-2 mt-2"><strong><i class="fas fa-trophy"></i> Best by Position:</strong></div>';
+                Object.entries(data.best_by_position).forEach(([pos, player]) => {
+                    const tierColor = player.tier === 'Elite' ? 'success' : player.tier === 'High' ? 'primary' : 'secondary';
+                    html += `
+                        <div class="mb-1 small">
+                            <span class="badge bg-${tierColor}">${pos}</span>
+                            <strong>${player.name}</strong>
+                            ${player.value_delta > 0 ? `<span class="text-success">(+${player.value_delta})</span>` : ''}
+                            <button class="btn btn-outline-dark btn-sm float-end" style="padding: 1px 4px; font-size: 0.7rem;" onclick="draftPlayer(${player.player_id}, '${player.name}')">+</button>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Roster state
+            if (data.roster_state && data.roster_state.current) {
+                const current = data.roster_state.current;
+                const needs = data.roster_state.needs;
+                
+                html += '<div class="mb-2 mt-3"><strong><i class="fas fa-users"></i> Your Roster:</strong></div>';
+                Object.entries(needs).forEach(([pos, needCount]) => {
+                    const currentCount = current[pos]?.count || 0;
+                    const needColor = needCount > 2 ? 'danger' : needCount > 0 ? 'warning' : 'success';
+                    html += `
+                        <div class="small mb-1">
+                            <span class="badge bg-${needColor}">${pos}</span>
+                            ${currentCount} drafted, need ${needCount} more
+                        </div>
+                    `;
+                });
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        function draftPlayer(playerId, playerName) {
+            if (!currentDraftSession) {
+                showMessage('No active draft session', 'error');
+                return;
+            }
+            
+            // For now, just simulate adding to user's roster
+            // In a real draft, you'd track pick numbers, rounds, etc.
+            const pickData = {
+                session_id: currentDraftSession,
+                player_id: playerId,
+                pick_number: 1, // This would be calculated based on draft state
+                round_number: 1,
+                pick_in_round: 1,
+                team_number: 6, // User's draft position
+                is_user_pick: true
+            };
+            
+            fetch('/api/draft/pick', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pickData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showMessage(`Drafted ${playerName}!`, 'success');
+                    loadDraftRecommendations(); // Refresh recommendations
+                } else {
+                    showMessage('Error drafting player', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Error drafting player', 'error');
+                console.error('Error:', error);
+            });
+        }
+        
+        function loadSpreadsheet() {
+            const search = document.getElementById('searchInput').value;
+            const position = document.querySelector('input[name="positionRadio"]:checked').value;
+            const team = document.getElementById('teamFilter').value;
+            
+            showLoading(true);
+            
+            const params = new URLSearchParams();
+            params.append('position', position);  // Always include position
+            if (search) params.append('search', search);
+            if (team) params.append('team', team);
+            
+            fetch(`/api/players?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    currentData = data.players;
+                    currentSources = data.sources;
+                    renderSpreadsheet();
+                    updateResultsTitle();
+                    showLoading(false);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showLoading(false);
+                });
+        }
+        
+        function renderSpreadsheet() {
+            const container = document.getElementById('spreadsheetContent');
+            const compactMode = document.getElementById('compactMode').checked;
+            
+            if (currentData.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted p-4"><h5>No players found</h5></div>';
+                return;
+            }
+            
+            // Apply current sort
+            if (sortColumn) {
+                applySorting();
+            } else {
+                // Default sort by standard rank
+                currentData.sort((a, b) => {
+                    if (a.ordinal_rank === 'NA') return 1;
+                    if (b.ordinal_rank === 'NA') return -1;
+                    return a.ordinal_rank - b.ordinal_rank;
+                });
+            }
+            
+            let html = '<table class="table table-bordered spreadsheet-table">';
+            
+            // Header row
+            html += '<thead><tr>';
+            
+            // Player info columns
+            html += `<th onclick="sortBy('name')" class="player-name sortable">
+                        Player <span class="sort-icon">${getSortIcon('name')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('position')" class="position-cell sortable">
+                        Pos <span class="sort-icon">${getSortIcon('position')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('team')" class="team-cell sortable">
+                        Team <span class="sort-icon">${getSortIcon('team')}</span>
+                     </th>`;
+            
+            // Basic statistics columns
+            html += `<th onclick="sortBy('mean_rank')" class="stat-cell mean-cell sortable">
+                        Mean <span class="sort-icon">${getSortIcon('mean_rank')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('min_rank')" class="stat-cell min-cell sortable">
+                        Min <span class="sort-icon">${getSortIcon('min_rank')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('max_rank')" class="stat-cell max-cell sortable">
+                        Max <span class="sort-icon">${getSortIcon('max_rank')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('stdev_rank')" class="stat-cell stdev-cell sortable">
+                        StdDev <span class="sort-icon">${getSortIcon('stdev_rank')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('cv_rank')" class="stat-cell sortable" style="background-color: #f3e5f5;">
+                        CV% <span class="sort-icon">${getSortIcon('cv_rank')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('cv_impact')" class="stat-cell sortable" style="background-color: #fff3e0;">
+                        CV Impact <span class="sort-icon">${getSortIcon('cv_impact')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('cv_impact_high')" class="stat-cell sortable" style="background-color: #ffe0b3;">
+                        CV Impact (H) <span class="sort-icon">${getSortIcon('cv_impact_high')}</span>
+                     </th>`;
+            
+            // All five ranking systems
+            html += `<th onclick="sortBy('ordinal_rank')" class="rank-cell sortable" style="background-color: #e1f5fe;">
+                        Std Rank <span class="sort-icon">${getSortIcon('ordinal_rank')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('ordinal_aggressive')" class="rank-cell sortable" style="background-color: #ffebee;">
+                        Aggr <span class="sort-icon">${getSortIcon('ordinal_aggressive')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('ordinal_conservative')" class="rank-cell sortable" style="background-color: #e8f5e9;">
+                        Cons <span class="sort-icon">${getSortIcon('ordinal_conservative')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('ordinal_aggressive_high')" class="rank-cell sortable" style="background-color: #ffcccb;">
+                        Aggr (H) <span class="sort-icon">${getSortIcon('ordinal_aggressive_high')}</span>
+                     </th>`;
+            html += `<th onclick="sortBy('ordinal_conservative_high')" class="rank-cell sortable" style="background-color: #c8e6c9;">
+                        Cons (H) <span class="sort-icon">${getSortIcon('ordinal_conservative_high')}</span>
+                     </th>`;
+            
+            // Ranking source columns (moved to right side after stats)
+            currentSources.forEach(source => {
+                const headerClass = compactMode ? 'compact-header' : '';
+                const displayName = compactMode ? source.split('_').pop() : source.replace(/_/g, ' ');
+                const sourceKey = 'rank_' + source.replace(/[^a-zA-Z0-9_]/g, '_');
+                html += `<th onclick="sortBy('${sourceKey}')" class="rank-source sortable ${headerClass}">
+                            ${displayName} <span class="sort-icon">${getSortIcon(sourceKey)}</span>
+                         </th>`;
+            });
+            
+            html += '</tr></thead><tbody>';
+            
+            // Filter NA players if checkbox is checked
+            const hideNA = document.getElementById('hideNAPlayers').checked;
+            const dataToShow = hideNA ? currentData.filter(p => p.ordinal_rank !== 'NA') : currentData;
+            
+            // Data rows
+            dataToShow.forEach(player => {
+                // Determine if rankings changed due to CV transforms
+                let rankChangeClass = '';
+                if (player.ordinal_rank !== 'NA' && player.ordinal_aggressive !== 'NA' && player.ordinal_conservative !== 'NA' && 
+                    player.ordinal_aggressive_high !== 'NA' && player.ordinal_conservative_high !== 'NA') {
+                    const stdRank = player.ordinal_rank;
+                    const aggrRank = player.ordinal_aggressive;
+                    const consRank = player.ordinal_conservative;
+                    const aggrHighRank = player.ordinal_aggressive_high;
+                    const consHighRank = player.ordinal_conservative_high;
+                    
+                    // Check if there's significant movement (more than 2 positions) with any CV adjustment
+                    const maxChange = Math.max(
+                        Math.abs(stdRank - aggrRank),
+                        Math.abs(stdRank - consRank),
+                        Math.abs(stdRank - aggrHighRank),
+                        Math.abs(stdRank - consHighRank)
+                    );
+                    
+                    if (maxChange > 2) {
+                        // Determine if generally improved or declined using all CV adjustments
+                        const avgAltRank = (aggrRank + consRank + aggrHighRank + consHighRank) / 4;
+                        if (avgAltRank < stdRank - 1) {
+                            rankChangeClass = 'rank-improved'; // Lower rank number = better
+                        } else if (avgAltRank > stdRank + 1) {
+                            rankChangeClass = 'rank-declined'; // Higher rank number = worse
+                        } else {
+                            rankChangeClass = 'rank-changed';
+                        }
+                    }
+                }
+                
+                const baseRowClass = player.is_unranked ? 'unranked-player' : '';
+                const fullRowClass = `${baseRowClass} ${rankChangeClass}`.trim();
+                html += `<tr class="${fullRowClass}">`;
+                
+                // Player info columns
+                html += `<td class="player-name">${player.name}</td>`;
+                html += `<td class="position-cell position-${player.position}">${player.position}</td>`;
+                html += `<td class="team-cell">${player.team}</td>`;
+                
+                // Basic statistics columns
+                html += `<td class="stat-cell mean-cell">${player.mean_rank}</td>`;
+                html += `<td class="stat-cell min-cell">${player.min_rank}</td>`;
+                html += `<td class="stat-cell max-cell">${player.max_rank}</td>`;
+                html += `<td class="stat-cell stdev-cell">${player.stdev_rank}</td>`;
+                html += `<td class="stat-cell" style="background-color: #f3e5f5;">${player.cv_rank}</td>`;
+                html += `<td class="stat-cell" style="background-color: #fff3e0;">${player.cv_impact}</td>`;
+                html += `<td class="stat-cell" style="background-color: #ffe0b3;">${player.cv_impact_high}</td>`;
+                
+                // All five ranking systems
+                html += `<td class="rank-cell" style="background-color: #e1f5fe;">${player.ordinal_rank}</td>`;
+                html += `<td class="rank-cell" style="background-color: #ffebee;">${player.ordinal_aggressive}</td>`;
+                html += `<td class="rank-cell" style="background-color: #e8f5e9;">${player.ordinal_conservative}</td>`;
+                html += `<td class="rank-cell" style="background-color: #ffcccb;">${player.ordinal_aggressive_high}</td>`;
+                html += `<td class="rank-cell" style="background-color: #c8e6c9;">${player.ordinal_conservative_high}</td>`;
+                
+                // Ranking source columns (moved to right side after stats)
+                currentSources.forEach(source => {
+                    const rankKey = `rank_${source.replace(/[^a-zA-Z0-9_]/g, '_')}`;
+                    const rank = player[rankKey];
+                    
+                    if (player.is_unranked) {
+                        // Show NA for completely unranked players
+                        html += `<td class="rank-cell default-rank">NA</td>`;
+                    } else {
+                        const isDefault = rank > 200; // Likely a default rank for this source
+                        const cellClass = isDefault ? 'rank-cell default-rank' : 'rank-cell';
+                        html += `<td class="${cellClass}">${rank}</td>`;
+                    }
+                });
+                
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        function sortBy(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+            
+            applySorting();
+            renderSpreadsheet();
+        }
+        
+        function applySorting() {
+            if (!sortColumn) return;
+            
+            currentData.sort((a, b) => {
+                let aVal = a[sortColumn];
+                let bVal = b[sortColumn];
+                
+                // Handle NA values - always put them at the end
+                if (aVal === 'NA' && bVal !== 'NA') {
+                    return 1;
+                }
+                if (aVal !== 'NA' && bVal === 'NA') {
+                    return -1;
+                }
+                if (aVal === 'NA' && bVal === 'NA') {
+                    return 0;
+                }
+                
+                // Handle numeric vs string comparison
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+                } else {
+                    aVal = String(aVal).toLowerCase();
+                    bVal = String(bVal).toLowerCase();
+                    if (sortDirection === 'asc') {
+                        return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+                    } else {
+                        return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+                    }
+                }
+            });
+        }
+        
+        function getSortIcon(column) {
+            if (sortColumn !== column) {
+                return '<i class="fas fa-sort"></i>';
+            }
+            return sortDirection === 'asc' 
+                ? '<i class="fas fa-sort-up sort-active"></i>'
+                : '<i class="fas fa-sort-down sort-active"></i>';
+        }
+        
+        function updateResultsTitle() {
+            const position = document.querySelector('input[name="positionRadio"]:checked').value;
+            const search = document.getElementById('searchInput').value;
+            const team = document.getElementById('teamFilter').value;
+            
+            let title = `${position} Rankings`;
+            if (search || team) {
+                const filters = [];
+                if (search) filters.push(`"${search}"`);
+                if (team) filters.push(team);
+                title += ` (${filters.join(', ')})`;
+            }
+            
+            document.getElementById('resultsTitle').textContent = title;
+        }
+        
+        
+        function showLoading(show) {
+            const spinner = document.getElementById('loadingSpinner');
+            const overlay = document.getElementById('loadingOverlay');
+            
+            if (show) {
+                spinner.classList.remove('d-none');
+                overlay.classList.remove('d-none');
+            } else {
+                spinner.classList.add('d-none');
+                overlay.classList.add('d-none');
+            }
+        }
+        
+        // Position radio button listeners
+        document.querySelectorAll('input[name="positionRadio"]').forEach(radio => {
+            radio.addEventListener('change', loadSpreadsheet);
+        });
+        
+        
+        // Hide NA players toggle
+        document.getElementById('hideNAPlayers').addEventListener('change', renderSpreadsheet);
+        
+        // Compact mode toggle
+        document.getElementById('compactMode').addEventListener('change', renderSpreadsheet);
+        
+        // Search on enter
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loadSpreadsheet();
+            }
+        });
+        
+        // Auto-search with debounce
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (this.value.length >= 2 || this.value.length === 0) {
+                    loadSpreadsheet();
+                }
+            }, 500);
+        });
+        
+        // Export to CSV function
+        function exportToCSV() {
+            const headers = ['Player', 'Position', 'Team', 'Mean', 'Min', 'Max', 'StdDev', 'CV%', 
+                           'Std Rank', 'Aggr Rank', 'Cons Rank', 'Aggr (H)', 'Cons (H)'];
+            
+            // Add source columns
+            currentSources.forEach(source => {
+                headers.push(source.replace(/_/g, ' '));
+            });
+            
+            let csv = headers.join(',') + '\n';
+            
+            currentData.forEach(player => {
+                const row = [
+                    player.name,
+                    player.position,
+                    player.team,
+                    player.mean_rank,
+                    player.min_rank,
+                    player.max_rank,
+                    player.stdev_rank,
+                    player.cv_rank,
+                    player.ordinal_rank,
+                    player.ordinal_aggressive,
+                    player.ordinal_conservative,
+                    player.ordinal_aggressive_high,
+                    player.ordinal_conservative_high
+                ];
+                
+                // Add source rankings
+                currentSources.forEach(source => {
+                    const rankKey = `rank_${source.replace(/[^a-zA-Z0-9_]/g, '_')}`;
+                    row.push(player[rankKey] || 'NA');
+                });
+                
+                csv += row.map(val => `"${val}"`).join(',') + '\n';
+            });
+            
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const position = document.querySelector('input[name="positionRadio"]:checked').value;
+            a.download = `fantasy_rankings_${position}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

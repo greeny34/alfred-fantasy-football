@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALFRED - Enhanced Player Analytics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <style>
+        :root {
+            --primary-blue: #3b82f6;
+            --primary-green: #10b981;
+            --accent-yellow: #fbbf24;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --bg-dark: #1e293b;
+            --bg-medium: #334155;
+            --bg-light: #475569;
+            --text-light: #f1f5f9;
+            --border-color: #475569;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Left Panel - Controls */
+        .controls-panel {
+            width: 350px;
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            height: calc(100vh - 140px);
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Center Panel - Data Table */
+        .data-panel {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            height: calc(100vh - 140px);
+            overflow: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Right Panel - Analytics */
+        .analytics-panel {
+            width: 400px;
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            height: calc(100vh - 140px);
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Header */
+        .rankings-header {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--border-color);
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        /* Control Sections */
+        .control-section {
+            background: rgba(51, 65, 85, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-section h6 {
+            color: var(--primary-green);
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        /* Team Selection */
+        .team-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .team-chip {
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid var(--border-color);
+            background: rgba(71, 85, 105, 0.5);
+        }
+
+        .team-chip.favorite {
+            background: var(--primary-green);
+            border-color: var(--primary-green);
+            color: white;
+        }
+
+        .team-chip.hated {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .team-chip:hover {
+            transform: scale(1.05);
+        }
+
+        /* Strategy Selector */
+        .strategy-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .strategy-btn {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid var(--border-color);
+            background: rgba(71, 85, 105, 0.5);
+            color: var(--text-light);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .strategy-btn.active {
+            background: var(--primary-blue);
+            border-color: var(--primary-blue);
+            color: white;
+        }
+
+        /* Sliders */
+        .slider-container {
+            margin: 10px 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .bias-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-light);
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Enhanced Player Table */
+        .players-table {
+            width: 100%;
+            font-size: 0.85rem;
+            border-collapse: collapse;
+        }
+
+        .players-table th {
+            background: linear-gradient(135deg, var(--bg-medium) 0%, var(--bg-light) 100%);
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .players-table th:first-child {
+            text-align: left;
+            min-width: 60px;
+        }
+
+        .players-table td {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .players-table tr:nth-child(even) {
+            background: rgba(51, 65, 85, 0.3);
+        }
+
+        .players-table tr:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        /* Player Name Column */
+        .player-name-cell {
+            text-align: left !important;
+            min-width: 180px;
+            position: sticky;
+            left: 0;
+            background: rgba(30, 41, 59, 0.95);
+            z-index: 5;
+        }
+
+        .players-table tr:nth-child(even) .player-name-cell {
+            background: rgba(51, 65, 85, 0.5);
+        }
+
+        .players-table tr:hover .player-name-cell {
+            background: rgba(59, 130, 246, 0.3);
+        }
+
+        /* Ordinal Rank Column */
+        .ordinal-rank {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary-green);
+            min-width: 50px;
+        }
+
+        /* ADP Column */
+        .adp-cell {
+            font-weight: bold;
+            color: var(--accent-yellow);
+            min-width: 60px;
+        }
+
+        /* Position Colors */
+        .pos-QB { color: #ef4444; font-weight: bold; }
+        .pos-RB { color: #22c55e; font-weight: bold; }
+        .pos-WR { color: #3b82f6; font-weight: bold; }
+        .pos-TE { color: #f59e0b; font-weight: bold; }
+        .pos-K { color: #8b5cf6; font-weight: bold; }
+        .pos-DST { color: #ec4899; font-weight: bold; }
+
+        /* Risk Indicators */
+        .risk-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+
+        .risk-low { background: #22c55e; }
+        .risk-medium { background: #f59e0b; }
+        .risk-high { background: #ef4444; }
+
+        /* Bias Indicators */
+        .bias-indicator {
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 5px;
+        }
+
+        .bias-positive {
+            background: rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+            border: 1px solid #22c55e;
+        }
+
+        .bias-negative {
+            background: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+
+        .bias-neutral {
+            background: rgba(71, 85, 105, 0.3);
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Player Adjustment Controls */
+        .player-controls {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+
+        .adjust-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid var(--border-color);
+            background: rgba(71, 85, 105, 0.5);
+            color: var(--text-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            transition: all 0.2s ease;
+        }
+
+        .adjust-btn:hover {
+            background: var(--primary-blue);
+            border-color: var(--primary-blue);
+        }
+
+        /* Charts Container */
+        .chart-container {
+            background: rgba(51, 65, 85, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            height: 250px;
+            position: relative;
+        }
+
+        .chart-title {
+            color: var(--primary-green);
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        /* Impact Metrics */
+        .impact-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .metric-card {
+            background: rgba(51, 65, 85, 0.5);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-green);
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            opacity: 0.8;
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--text-light);
+            opacity: 0.7;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid var(--primary-green);
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1400px) {
+            .main-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .controls-panel,
+            .analytics-panel {
+                width: 100%;
+                height: auto;
+                max-height: 300px;
+            }
+            
+            .data-panel {
+                height: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="rankings-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h4 class="mb-0">🧠 ALFRED - Enhanced Player Analytics</h4>
+                    <small class="text-muted">Advanced bias-adjusted rankings with risk analysis</small>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-sm btn-success me-2" onclick="applyBiases()">
+                        <i class="fas fa-calculator"></i> Recalculate
+                    </button>
+                    <button class="btn btn-sm btn-warning me-2" onclick="exportRankings()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <a href="/" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-home"></i> Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Interface -->
+    <div class="main-container">
+        <!-- Left Panel: Controls -->
+        <div class="controls-panel">
+            <h5><i class="fas fa-sliders-h"></i> Bias Controls</h5>
+            
+            <!-- Strategy Selection -->
+            <div class="control-section">
+                <h6><i class="fas fa-chess"></i> Strategy Type</h6>
+                <div class="strategy-buttons">
+                    <button class="strategy-btn" data-strategy="conservative">
+                        Safe
+                    </button>
+                    <button class="strategy-btn active" data-strategy="balanced">
+                        Balanced  
+                    </button>
+                    <button class="strategy-btn" data-strategy="aggressive">
+                        Aggressive
+                    </button>
+                </div>
+                <small class="text-muted mt-2 d-block">
+                    Affects how CV (risk) impacts rankings
+                </small>
+            </div>
+
+            <!-- Team Preferences -->
+            <div class="control-section">
+                <h6><i class="fas fa-heart"></i> Team Preferences</h6>
+                
+                <!-- Favorite Teams -->
+                <div class="mb-3">
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Favorite Team Boost</span>
+                            <span id="favoriteMultiplier">1.2x</span>
+                        </div>
+                        <input type="range" class="bias-slider" id="favoriteSlider" 
+                               min="1.0" max="1.5" step="0.1" value="1.2">
+                    </div>
+                    <div class="team-selector" id="favoriteTeams">
+                        <!-- Team chips will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Hated Teams -->
+                <div>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Avoid Team Penalty</span>
+                            <span id="hatedMultiplier">0.8x</span>
+                        </div>
+                        <input type="range" class="bias-slider" id="hatedSlider" 
+                               min="0.5" max="1.0" step="0.1" value="0.8">
+                    </div>
+                    <div class="team-selector" id="hatedTeams">
+                        <!-- Team chips will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Settings -->
+            <div class="control-section">
+                <h6><i class="fas fa-chart-line"></i> Risk Analysis</h6>
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>CV Impact Weight</span>
+                        <span id="cvWeight">1.0x</span>
+                    </div>
+                    <input type="range" class="bias-slider" id="cvSlider" 
+                           min="0.5" max="2.0" step="0.1" value="1.0">
+                </div>
+                <small class="text-muted">
+                    Higher = More weight on consistency vs upside
+                </small>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="control-section">
+                <h6><i class="fas fa-magic"></i> Quick Actions</h6>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-success btn-sm" onclick="resetBiases()">
+                        <i class="fas fa-undo"></i> Reset All Biases
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="saveProfile()">
+                        <i class="fas fa-save"></i> Save Profile
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="loadProfile()">
+                        <i class="fas fa-folder-open"></i> Load Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Panel: Enhanced Data Table -->
+        <div class="data-panel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5><i class="fas fa-table"></i> Player Rankings</h5>
+                <div class="d-flex gap-2 align-items-center">
+                    <input type="text" id="searchBox" class="form-control form-control-sm" 
+                           placeholder="Search players..." style="width: 200px;">
+                    <select id="positionFilter" class="form-select form-select-sm" style="width: 100px;">
+                        <option value="ALL">All Pos</option>
+                        <option value="QB">QB</option>
+                        <option value="RB">RB</option>
+                        <option value="WR">WR</option>
+                        <option value="TE">TE</option>
+                        <option value="K">K</option>
+                        <option value="DST">DST</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="playersTableContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading player data...
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Analytics -->
+        <div class="analytics-panel">
+            <h5><i class="fas fa-chart-bar"></i> Analytics Dashboard</h5>
+            
+            <!-- Impact Metrics -->
+            <div class="impact-metrics">
+                <div class="metric-card">
+                    <div class="metric-value" id="playersAffected">0</div>
+                    <div class="metric-label">Players Affected</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="avgBiasImpact">0.0%</div>
+                    <div class="metric-label">Avg Bias Impact</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="riskScore">0.0</div>
+                    <div class="metric-label">Portfolio Risk</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="strategyAlignment">0.0%</div>
+                    <div class="metric-label">Strategy Alignment</div>
+                </div>
+            </div>
+
+            <!-- ADP vs Adjusted Ranking Chart -->
+            <div class="chart-container">
+                <div class="chart-title">ADP vs Adjusted Rankings</div>
+                <canvas id="adpChart"></canvas>
+            </div>
+
+            <!-- Risk/Reward Quadrant Chart -->
+            <div class="chart-container">
+                <div class="chart-title">Risk/Reward Analysis</div>
+                <canvas id="riskChart"></canvas>
+            </div>
+
+            <!-- Bias Impact Distribution -->
+            <div class="chart-container">
+                <div class="chart-title">Bias Impact Distribution</div>
+                <canvas id="biasChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let playerData = [];
+        let adjustedRankings = [];
+        let userPreferences = {
+            strategy_type: 'balanced',
+            favorite_teams: [],
+            favorite_team_multiplier: 1.2,
+            hated_teams: [],
+            hated_team_multiplier: 0.8,
+            cv_weight: 1.0
+        };
+        let charts = {};
+
+        // NFL Teams
+        const NFL_TEAMS = [
+            'ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE',
+            'DAL', 'DEN', 'DET', 'GB', 'HOU', 'IND', 'JAX', 'KC',
+            'LAC', 'LAR', 'LV', 'MIA', 'MIN', 'NE', 'NO', 'NYG',
+            'NYJ', 'PHI', 'PIT', 'SEA', 'SF', 'TB', 'TEN', 'WAS'
+        ];
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing Enhanced Rankings...');
+            initializeInterface();
+            loadPlayerData();
+            setupEventListeners();
+        });
+
+        // Initialize the interface components
+        function initializeInterface() {
+            setupTeamSelectors();
+            setupStrategyButtons();
+            setupSliders();
+        }
+
+        // Setup team selection chips
+        function setupTeamSelectors() {
+            const favoriteContainer = document.getElementById('favoriteTeams');
+            const hatedContainer = document.getElementById('hatedTeams');
+            
+            favoriteContainer.innerHTML = '';
+            hatedContainer.innerHTML = '';
+            
+            NFL_TEAMS.forEach(team => {
+                // Favorite teams chip
+                const favoriteChip = document.createElement('div');
+                favoriteChip.className = 'team-chip';
+                favoriteChip.textContent = team;
+                favoriteChip.setAttribute('data-team', team);
+                favoriteChip.onclick = () => toggleTeam(team, 'favorite');
+                favoriteContainer.appendChild(favoriteChip);
+                
+                // Hated teams chip
+                const hatedChip = document.createElement('div');
+                hatedChip.className = 'team-chip';
+                hatedChip.textContent = team;
+                hatedChip.setAttribute('data-team', team);
+                hatedChip.onclick = () => toggleTeam(team, 'hated');
+                hatedContainer.appendChild(hatedChip);
+            });
+        }
+
+        // Setup strategy selection buttons
+        function setupStrategyButtons() {
+            document.querySelectorAll('.strategy-btn').forEach(btn => {
+                btn.onclick = function() {
+                    document.querySelectorAll('.strategy-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    userPreferences.strategy_type = this.dataset.strategy;
+                    recalculateRankings();
+                };
+            });
+        }
+
+        // Setup bias sliders
+        function setupSliders() {
+            const favoriteSlider = document.getElementById('favoriteSlider');
+            const hatedSlider = document.getElementById('hatedSlider');
+            const cvSlider = document.getElementById('cvSlider');
+            
+            favoriteSlider.oninput = function() {
+                userPreferences.favorite_team_multiplier = parseFloat(this.value);
+                document.getElementById('favoriteMultiplier').textContent = this.value + 'x';
+                recalculateRankings();
+            };
+            
+            hatedSlider.oninput = function() {
+                userPreferences.hated_team_multiplier = parseFloat(this.value);
+                document.getElementById('hatedMultiplier').textContent = this.value + 'x';
+                recalculateRankings();
+            };
+            
+            cvSlider.oninput = function() {
+                userPreferences.cv_weight = parseFloat(this.value);
+                document.getElementById('cvWeight').textContent = this.value + 'x';
+                recalculateRankings();
+            };
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Search functionality
+            document.getElementById('searchBox').addEventListener('input', filterPlayers);
+            document.getElementById('positionFilter').addEventListener('change', filterPlayers);
+        }
+
+        // Toggle team selection
+        function toggleTeam(team, type) {
+            const chip = document.querySelector(`#${type}Teams .team-chip:contains('${team}')`);
+            
+            if (type === 'favorite') {
+                const index = userPreferences.favorite_teams.indexOf(team);
+                if (index > -1) {
+                    userPreferences.favorite_teams.splice(index, 1);
+                    chip.classList.remove('favorite');
+                } else {
+                    // Remove from hated if it's there
+                    const hatedIndex = userPreferences.hated_teams.indexOf(team);
+                    if (hatedIndex > -1) {
+                        userPreferences.hated_teams.splice(hatedIndex, 1);
+                        document.querySelector(`#hatedTeams .team-chip:contains('${team}')`).classList.remove('hated');
+                    }
+                    userPreferences.favorite_teams.push(team);
+                    chip.classList.add('favorite');
+                }
+            } else {
+                const index = userPreferences.hated_teams.indexOf(team);
+                if (index > -1) {
+                    userPreferences.hated_teams.splice(index, 1);
+                    chip.classList.remove('hated');
+                } else {
+                    // Remove from favorites if it's there
+                    const favoriteIndex = userPreferences.favorite_teams.indexOf(team);
+                    if (favoriteIndex > -1) {
+                        userPreferences.favorite_teams.splice(favoriteIndex, 1);
+                        document.querySelector(`#favoriteTeams .team-chip:contains('${team}')`).classList.remove('favorite');
+                    }
+                    userPreferences.hated_teams.push(team);
+                    chip.classList.add('hated');
+                }
+            }
+            
+            recalculateRankings();
+        }
+
+        // Load player data from API
+        async function loadPlayerData() {
+            try {
+                // Load both base player data and any existing biases
+                const [playersResponse, biasResponse] = await Promise.all([
+                    fetch('/api/bias/adjusted-rankings'),
+                    fetch('/api/bias/user-preferences')
+                ]);
+                
+                adjustedRankings = await playersResponse.json();
+                const preferences = await biasResponse.json();
+                
+                // Update user preferences from server
+                userPreferences = { ...userPreferences, ...preferences };
+                
+                console.log(`Loaded ${adjustedRankings.length} players`);
+                
+                // Update UI with loaded preferences
+                updateUIFromPreferences();
+                
+                // Render initial data
+                renderPlayersTable();
+                updateAnalytics();
+                updateCharts();
+                
+            } catch (error) {
+                console.error('Error loading player data:', error);
+                document.getElementById('playersTableContainer').innerHTML = 
+                    '<div class="alert alert-danger">Error loading player data</div>';
+            }
+        }
+
+        // Update UI elements from loaded preferences
+        function updateUIFromPreferences() {
+            // Update sliders
+            document.getElementById('favoriteSlider').value = userPreferences.favorite_team_multiplier;
+            document.getElementById('hatedSlider').value = userPreferences.hated_team_multiplier;
+            document.getElementById('cvSlider').value = userPreferences.cv_weight;
+            
+            // Update slider labels
+            document.getElementById('favoriteMultiplier').textContent = userPreferences.favorite_team_multiplier + 'x';
+            document.getElementById('hatedMultiplier').textContent = userPreferences.hated_team_multiplier + 'x';
+            document.getElementById('cvWeight').textContent = userPreferences.cv_weight + 'x';
+            
+            // Update strategy buttons
+            document.querySelectorAll('.strategy-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.strategy === userPreferences.strategy_type);
+            });
+            
+            // Update team chips
+            userPreferences.favorite_teams.forEach(team => {
+                const chip = document.querySelector(`#favoriteTeams .team-chip[data-team="${team}"]`);
+                if (chip) chip.classList.add('favorite');
+            });
+            
+            userPreferences.hated_teams.forEach(team => {
+                const chip = document.querySelector(`#hatedTeams .team-chip[data-team="${team}"]`);
+                if (chip) chip.classList.add('hated');
+            });
+        }
+
+        // Recalculate rankings based on current biases
+        function recalculateRankings() {
+            if (playerData.length === 0) return;
+            
+            adjustedRankings = playerData.map(player => {
+                const baseAdp = player.avg_adp || 999;
+                const cv = calculateCV(player);
+                
+                let teamMultiplier = 1.0;
+                if (userPreferences.favorite_teams.includes(player.team)) {
+                    teamMultiplier = userPreferences.favorite_team_multiplier;
+                } else if (userPreferences.hated_teams.includes(player.team)) {
+                    teamMultiplier = userPreferences.hated_team_multiplier;
+                }
+                
+                let cvMultiplier = 1.0;
+                if (userPreferences.strategy_type === 'conservative') {
+                    cvMultiplier = 1.0 - (cv * 0.3 * userPreferences.cv_weight);
+                } else if (userPreferences.strategy_type === 'aggressive') {
+                    cvMultiplier = 1.0 + (cv * 0.2 * userPreferences.cv_weight);
+                }
+                
+                const adjustedAdp = baseAdp * teamMultiplier * cvMultiplier;
+                const biasImpact = (baseAdp - adjustedAdp) / baseAdp;
+                
+                return {
+                    ...player,
+                    original_adp: baseAdp,
+                    adjusted_adp: adjustedAdp,
+                    team_multiplier: teamMultiplier,
+                    cv_multiplier: cvMultiplier,
+                    cv_value: cv,
+                    bias_impact: biasImpact
+                };
+            });
+            
+            // Sort by adjusted ADP and assign ordinal rankings
+            adjustedRankings.sort((a, b) => a.adjusted_adp - b.adjusted_adp);
+            adjustedRankings.forEach((player, index) => {
+                player.adjusted_ordinal_rank = index + 1;
+            });
+            
+            renderPlayersTable();
+            updateAnalytics();
+            updateCharts();
+        }
+
+        // Calculate coefficient of variation for a player
+        function calculateCV(player) {
+            // Use existing ranking variance or estimate based on position
+            if (player.stdev_rank && player.mean_rank) {
+                return player.stdev_rank / player.mean_rank;
+            }
+            
+            // Default CV estimates by position
+            const defaultCV = {
+                'QB': 0.15,
+                'RB': 0.25,
+                'WR': 0.30,
+                'TE': 0.20,
+                'K': 0.40,
+                'DST': 0.35
+            };
+            
+            return defaultCV[player.position] || 0.25;
+        }
+
+        // Render the enhanced players table
+        function renderPlayersTable() {
+            const container = document.getElementById('playersTableContainer');
+            
+            let html = `
+                <table class="players-table">
+                    <thead>
+                        <tr>
+                            <th onclick="sortBy('adjusted_ordinal_rank')" class="ordinal-rank">
+                                Rank <i class="fas fa-sort"></i>
+                            </th>
+                            <th onclick="sortBy('name')" class="player-name-cell">
+                                Player <i class="fas fa-sort"></i>
+                            </th>
+                            <th onclick="sortBy('position')">
+                                Pos <i class="fas fa-sort"></i>
+                            </th>
+                            <th onclick="sortBy('team')">
+                                Team <i class="fas fa-sort"></i>
+                            </th>
+                            <th onclick="sortBy('original_adp')" class="adp-cell">
+                                Orig ADP <i class="fas fa-sort"></i>
+                            </th>
+                            <th onclick="sortBy('adjusted_adp')" class="adp-cell">
+                                Adj ADP <i class="fas fa-sort"></i>
+                            </th>
+                            <th onclick="sortBy('cv_value')">
+                                Risk <i class="fas fa-sort"></i>
+                            </th>
+                            <th onclick="sortBy('bias_impact')">
+                                Bias Impact <i class="fas fa-sort"></i>
+                            </th>
+                            <th>
+                                Adjust <i class="fas fa-sliders-h"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            const filteredPlayers = getFilteredPlayers();
+            
+            filteredPlayers.slice(0, 200).forEach(player => {
+                const biasClass = player.bias_impact > 0.05 ? 'bias-positive' : 
+                                 player.bias_impact < -0.05 ? 'bias-negative' : 'bias-neutral';
+                
+                const riskClass = player.cv_value < 0.2 ? 'risk-low' : 
+                                 player.cv_value < 0.3 ? 'risk-medium' : 'risk-high';
+                
+                html += `
+                    <tr>
+                        <td class="ordinal-rank">${player.adjusted_ordinal_rank}</td>
+                        <td class="player-name-cell">
+                            <strong>${player.name}</strong>
+                            <span class="bias-indicator ${biasClass}">
+                                ${player.bias_impact > 0 ? '+' : ''}${(player.bias_impact * 100).toFixed(1)}%
+                            </span>
+                        </td>
+                        <td class="pos-${player.position}">${player.position}</td>
+                        <td>${player.team}</td>
+                        <td class="adp-cell">${player.original_adp.toFixed(1)}</td>
+                        <td class="adp-cell">${player.adjusted_adp.toFixed(1)}</td>
+                        <td>
+                            <span class="risk-indicator ${riskClass}"></span>
+                            ${(player.cv_value * 100).toFixed(0)}%
+                        </td>
+                        <td class="${biasClass.replace('bias-', '')}">
+                            ${player.bias_impact > 0 ? '+' : ''}${(player.bias_impact * 100).toFixed(1)}%
+                        </td>
+                        <td>
+                            <div class="player-controls">
+                                <button class="adjust-btn" onclick="adjustPlayer(${player.player_id}, 0.1)">+</button>
+                                <button class="adjust-btn" onclick="adjustPlayer(${player.player_id}, -0.1)">-</button>
+                                <button class="adjust-btn" onclick="toggleMustDraft(${player.player_id})">★</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Get filtered players based on search and position
+        function getFilteredPlayers() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const positionFilter = document.getElementById('positionFilter').value;
+            
+            return adjustedRankings.filter(player => {
+                const matchesSearch = player.name.toLowerCase().includes(searchTerm) ||
+                                    player.team.toLowerCase().includes(searchTerm);
+                const matchesPosition = positionFilter === 'ALL' || player.position === positionFilter;
+                
+                return matchesSearch && matchesPosition;
+            });
+        }
+
+        // Filter players when search/filter changes
+        function filterPlayers() {
+            renderPlayersTable();
+        }
+
+        // Update analytics metrics
+        function updateAnalytics() {
+            const affectedPlayers = adjustedRankings.filter(p => Math.abs(p.bias_impact) > 0.01);
+            const avgBiasImpact = affectedPlayers.reduce((sum, p) => sum + Math.abs(p.bias_impact), 0) / affectedPlayers.length;
+            const portfolioRisk = adjustedRankings.slice(0, 150).reduce((sum, p) => sum + p.cv_value, 0) / 150;
+            
+            document.getElementById('playersAffected').textContent = affectedPlayers.length;
+            document.getElementById('avgBiasImpact').textContent = (avgBiasImpact * 100 || 0).toFixed(1) + '%';
+            document.getElementById('riskScore').textContent = (portfolioRisk * 100).toFixed(1) + '%';
+            document.getElementById('strategyAlignment').textContent = '85.0%'; // Placeholder
+        }
+
+        // Update charts
+        function updateCharts() {
+            updateADPChart();
+            updateRiskChart();
+            updateBiasChart();
+        }
+
+        // Update ADP comparison chart
+        function updateADPChart() {
+            const ctx = document.getElementById('adpChart').getContext('2d');
+            
+            if (charts.adpChart) {
+                charts.adpChart.destroy();
+            }
+            
+            const topPlayers = adjustedRankings.slice(0, 50);
+            
+            charts.adpChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Original ADP',
+                        data: topPlayers.map(p => ({x: p.original_adp, y: p.adjusted_ordinal_rank})),
+                        backgroundColor: 'rgba(251, 191, 36, 0.6)',
+                        borderColor: 'rgb(251, 191, 36)'
+                    }, {
+                        label: 'Adjusted ADP',
+                        data: topPlayers.map(p => ({x: p.adjusted_adp, y: p.adjusted_ordinal_rank})),
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgb(16, 185, 129)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f1f5f9'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'ADP',
+                                color: '#f1f5f9'
+                            },
+                            ticks: {
+                                color: '#f1f5f9'
+                            },
+                            grid: {
+                                color: 'rgba(241, 245, 249, 0.1)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Ranking',
+                                color: '#f1f5f9'
+                            },
+                            ticks: {
+                                color: '#f1f5f9'
+                            },
+                            grid: {
+                                color: 'rgba(241, 245, 249, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update risk/reward chart
+        function updateRiskChart() {
+            const ctx = document.getElementById('riskChart').getContext('2d');
+            
+            if (charts.riskChart) {
+                charts.riskChart.destroy();
+            }
+            
+            const topPlayers = adjustedRankings.slice(0, 100);
+            
+            charts.riskChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Players',
+                        data: topPlayers.map(p => ({
+                            x: p.cv_value * 100,
+                            y: p.adjusted_adp,
+                            playerName: p.name,
+                            position: p.position
+                        })),
+                        backgroundColor: function(context) {
+                            const position = context.parsed.position;
+                            const colors = {
+                                'QB': '#ef4444',
+                                'RB': '#22c55e',
+                                'WR': '#3b82f6',
+                                'TE': '#f59e0b',
+                                'K': '#8b5cf6',
+                                'DST': '#ec4899'
+                            };
+                            return colors[position] || '#6b7280';
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.raw.playerName} (${context.raw.position})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Risk (CV%)',
+                                color: '#f1f5f9'
+                            },
+                            ticks: {
+                                color: '#f1f5f9'
+                            },
+                            grid: {
+                                color: 'rgba(241, 245, 249, 0.1)'
+                            }
+                        },
+                        y: {
+                            reverse: true,
+                            title: {
+                                display: true,
+                                text: 'ADP (Lower = Better)',
+                                color: '#f1f5f9'
+                            },
+                            ticks: {
+                                color: '#f1f5f9'
+                            },
+                            grid: {
+                                color: 'rgba(241, 245, 249, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update bias impact distribution chart
+        function updateBiasChart() {
+            const ctx = document.getElementById('biasChart').getContext('2d');
+            
+            if (charts.biasChart) {
+                charts.biasChart.destroy();
+            }
+            
+            // Create bias impact distribution
+            const biasData = adjustedRankings.map(p => p.bias_impact * 100);
+            const bins = [-50, -20, -10, -5, 0, 5, 10, 20, 50];
+            const counts = new Array(bins.length - 1).fill(0);
+            
+            biasData.forEach(impact => {
+                for (let i = 0; i < bins.length - 1; i++) {
+                    if (impact >= bins[i] && impact < bins[i + 1]) {
+                        counts[i]++;
+                        break;
+                    }
+                }
+            });
+            
+            charts.biasChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: bins.slice(0, -1).map((bin, i) => `${bin}% to ${bins[i + 1]}%`),
+                    datasets: [{
+                        label: 'Player Count',
+                        data: counts,
+                        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#f1f5f9',
+                                maxRotation: 45
+                            },
+                            grid: {
+                                color: 'rgba(241, 245, 249, 0.1)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Number of Players',
+                                color: '#f1f5f9'
+                            },
+                            ticks: {
+                                color: '#f1f5f9'
+                            },
+                            grid: {
+                                color: 'rgba(241, 245, 249, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Utility functions
+        function adjustPlayer(playerId, adjustment) {
+            // Individual player adjustment logic
+            console.log(`Adjusting player ${playerId} by ${adjustment}`);
+        }
+
+        function toggleMustDraft(playerId) {
+            // Must draft toggle logic
+            console.log(`Toggling must draft for player ${playerId}`);
+        }
+
+        function sortBy(field) {
+            // Table sorting logic
+            console.log(`Sorting by ${field}`);
+        }
+
+        function applyBiases() {
+            recalculateRankings();
+        }
+
+        function resetBiases() {
+            userPreferences = {
+                strategy_type: 'balanced',
+                favorite_teams: [],
+                favorite_team_multiplier: 1.2,
+                hated_teams: [],
+                hated_team_multiplier: 0.8,
+                cv_weight: 1.0
+            };
+            
+            // Reset UI elements
+            document.querySelectorAll('.team-chip').forEach(chip => {
+                chip.classList.remove('favorite', 'hated');
+            });
+            
+            document.getElementById('favoriteSlider').value = 1.2;
+            document.getElementById('hatedSlider').value = 0.8;
+            document.getElementById('cvSlider').value = 1.0;
+            
+            document.getElementById('favoriteMultiplier').textContent = '1.2x';
+            document.getElementById('hatedMultiplier').textContent = '0.8x';
+            document.getElementById('cvWeight').textContent = '1.0x';
+            
+            recalculateRankings();
+        }
+
+        function saveProfile() {
+            // Save current preferences
+            localStorage.setItem('alfred_bias_profile', JSON.stringify(userPreferences));
+            alert('Profile saved!');
+        }
+
+        function loadProfile() {
+            // Load saved preferences
+            const saved = localStorage.getItem('alfred_bias_profile');
+            if (saved) {
+                userPreferences = JSON.parse(saved);
+                // Update UI to reflect loaded preferences
+                recalculateRankings();
+                alert('Profile loaded!');
+            }
+        }
+
+        function exportRankings() {
+            // Export adjusted rankings to CSV
+            const csv = adjustedRankings.map(p => 
+                `${p.adjusted_ordinal_rank},${p.name},${p.position},${p.team},${p.adjusted_adp.toFixed(1)},${(p.bias_impact * 100).toFixed(1)}%`
+            ).join('\n');
+            
+            const header = 'Rank,Player,Position,Team,Adjusted ADP,Bias Impact\n';
+            const blob = new Blob([header + csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'alfred_adjusted_rankings.csv';
+            a.click();
+            
+            window.URL.revokeObjectURL(url);
+        }
+
+        // CSS selector polyfill for older browsers
+        if (!Element.prototype.matches) {
+            Element.prototype.matches = Element.prototype.msMatchesSelector || 
+                                        Element.prototype.webkitMatchesSelector;
+        }
+
+        // :contains selector helper
+        function selectorContains(selector, text) {
+            return document.querySelector(selector + ':contains("' + text + '")');
+        }
+
+        // Add :contains functionality
+        document.querySelectorAll = function(selector) {
+            if (selector.includes(':contains(')) {
+                const parts = selector.split(':contains(');
+                const baseSelector = parts[0];
+                const searchText = parts[1].replace(/['")]/g, '');
+                
+                return Array.from(document.querySelectorAll(baseSelector))
+                    .filter(el => el.textContent.includes(searchText));
+            }
+            return Document.prototype.querySelectorAll.call(document, selector);
+        };
+    </script>
+</body>
+</html>

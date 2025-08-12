@@ -13,14 +13,16 @@ from datetime import datetime
 import json
 import signal
 import threading
+import sys
+import os
 
 # Import our validation system
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.db.player_validation import PlayerValidator
 
 app = Flask(__name__, 
-    template_folder='templates',
-    static_folder='static'
+    template_folder='../../templates',
+    static_folder='../../static'
 )
 
 # Database configuration
@@ -115,6 +117,15 @@ def spreadsheet():
         return render_template('spreadsheet.html')
     except:
         return "Spreadsheet template not found", 404
+
+@app.route('/enhanced-rankings')
+def enhanced_rankings():
+    """Serve the enhanced rankings interface with bias system"""
+    try:
+        return render_template('enhanced_rankings.html')
+    except Exception as e:
+        print(f"Error serving enhanced rankings: {e}")
+        return "Enhanced rankings template not found", 404
 
 # API Endpoints for the templates
 
@@ -538,6 +549,105 @@ def make_draft_pick():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# Bias System API Endpoints
+@app.route('/api/bias/user-preferences')
+def get_user_preferences():
+    """Get current user bias preferences"""
+    return jsonify({
+        'strategy_type': 'balanced',
+        'favorite_teams': [],
+        'favorite_team_multiplier': 1.2,
+        'hated_teams': [],
+        'hated_team_multiplier': 0.8,
+        'cv_weight': 1.0
+    })
+
+@app.route('/api/bias/user-preferences', methods=['POST'])
+def update_user_preferences():
+    """Update user bias preferences"""
+    try:
+        data = request.get_json()
+        # Here we would update the database with new preferences
+        # For now, just return success
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/bias/adjusted-rankings')
+def get_adjusted_rankings():
+    """Get rankings adjusted for current user biases"""
+    validator = PlayerValidator()
+    
+    try:
+        # Get base player data using same approach as working endpoint
+        all_players = validator.get_all_players()
+        
+        # Filter to main fantasy positions
+        fantasy_players = [p for p in all_players if p['position'] in ('QB', 'RB', 'WR', 'TE')]
+        
+        if not fantasy_players:
+            print("No fantasy players found")
+            return jsonify([])
+        
+        # Apply mock bias calculations (in production, this would use the database schema)
+        adjusted_players = []
+        for i, player in enumerate(fantasy_players[:200]):  # Limit for demo
+            # Mock calculations - player is a dictionary from get_all_players()
+            original_adp = player.get('avg_adp', (i + 1) * 10)
+            cv_value = 0.15 + (i % 10) * 0.02  # Mock CV based on position
+            
+            adjusted_players.append({
+                'player_id': player.get('id', i),  # Use 'id' not 'player_id'
+                'name': player['name'],
+                'position': player['position'],
+                'team': player['team'],
+                'original_adp': original_adp,
+                'adjusted_adp': original_adp * (0.9 + (i % 5) * 0.05),  # Mock adjustment
+                'cv_value': cv_value,
+                'bias_impact': (i % 20 - 10) / 100,  # Mock bias impact
+                'adjusted_ordinal_rank': i + 1,
+                'team_multiplier': 1.0,
+                'cv_multiplier': 1.0
+            })
+        
+        print(f"Returning {len(adjusted_players)} adjusted players")
+        return jsonify(adjusted_players)
+        
+    except Exception as e:
+        print(f"Error in adjusted rankings: {e}")
+        return jsonify([])
+
+@app.route('/api/bias/player-adjustment', methods=['POST'])
+def update_player_adjustment():
+    """Update individual player bias adjustment"""
+    try:
+        data = request.get_json()
+        player_id = data.get('player_id')
+        adjustment = data.get('adjustment', 0.0)
+        
+        # Here we would update player_adjustments table
+        # For now, just return success
+        return jsonify({'success': True, 'player_id': player_id, 'adjustment': adjustment})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/bias/analytics')
+def get_bias_analytics():
+    """Get bias impact analytics"""
+    return jsonify({
+        'players_affected': 42,
+        'avg_bias_impact': 8.5,
+        'portfolio_risk': 23.1,
+        'strategy_alignment': 85.0,
+        'position_distribution': {
+            'QB': {'original': 15, 'adjusted': 12},
+            'RB': {'original': 35, 'adjusted': 38},
+            'WR': {'original': 42, 'adjusted': 45},
+            'TE': {'original': 18, 'adjusted': 15}
+        }
+    })
 
 @app.route('/api/draft/undo', methods=['POST'])
 def undo_draft_pick():
