@@ -736,7 +736,7 @@ class DraftAssistantApp:
         
         subtitle_label = tk.Label(
             title_frame,
-            text="Standalone Desktop App - No Terminal Required",
+            text="Professional Interface with Database Integration",
             font=('Arial', 12),
             fg='#10b981',
             bg='#1f2937'
@@ -794,7 +794,7 @@ class DraftAssistantApp:
         info_frame = tk.Frame(self.root, bg='#1f2937')
         info_frame.pack(side='bottom', pady=20)
         
-        info_text = "✅ Embedded web server\n✅ Sophisticated AI opponents\n✅ Real-time draft modeling\n✅ No external dependencies"
+        info_text = "✅ Professional web interface\n✅ PostgreSQL database integration\n✅ Advanced draft analytics\n✅ Multiple ranking sources"
         info_label = tk.Label(
             info_frame,
             text=info_text,
@@ -808,15 +808,34 @@ class DraftAssistantApp:
     def launch_draft(self):
         """Launch the draft assistant"""
         self.start_button.config(state='disabled', text='🔄 Starting...')
-        self.status_label.config(text="Starting embedded server...")
+        self.status_label.config(text="Starting professional server...")
+        
+        # Start the professional Flask server instead
+        import subprocess
+        import sys
+        import os
+        
+        # Get the correct path to alfred_main_server.py
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        server_path = os.path.join(project_root, "alfred_main_server.py")
         
         # Start server in background thread
-        self.server = DraftAssistantServer(self.port)
-        self.server_thread = threading.Thread(target=self.server.start_server, daemon=True)
+        def start_professional_server():
+            try:
+                subprocess.run([sys.executable, server_path], 
+                             cwd=project_root, 
+                             capture_output=False)
+            except Exception as e:
+                print(f"Error starting professional server: {e}")
+        
+        self.server_thread = threading.Thread(target=start_professional_server, daemon=True)
         self.server_thread.start()
         
+        # Update port to match professional server
+        self.port = 5555
+        
         # Wait a moment then open browser
-        self.root.after(2000, self.open_browser)
+        self.root.after(3000, self.open_browser)
         
     def open_browser(self):
         """Open the draft interface in browser"""

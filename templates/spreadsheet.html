@@ -1017,13 +1017,12 @@
         function startDraft() {
             // Create new draft session
             const sessionData = {
-                session_name: `Draft ${new Date().toLocaleDateString()}`,
-                team_count: 12,
-                user_draft_position: 6,
-                draft_format: 'standard'
+                league_name: `Draft ${new Date().toLocaleDateString()}`,
+                draft_position: 6,
+                scoring: 'ppr'
             };
             
-            fetch('/api/draft/sessions', {
+            fetch('/api/draft/new', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(sessionData)
