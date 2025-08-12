@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Hardcoded project directory
+PROJECT_DIR="/Users/jeffgreenfield/dev/ff_draft_vibe"
+
+# Check if project exists
+if [ ! -d "$PROJECT_DIR" ]; then
+    osascript -e 'display dialog "ALFRED project not found at: '"$PROJECT_DIR"'" buttons {"OK"} default button "OK"'
+    exit 1
+fi
+
+# Change to project directory
+cd "$PROJECT_DIR"
+
+# Check if virtual environment exists
+if [ ! -d ".venv" ]; then
+    osascript -e 'display dialog "Python virtual environment not found. Please run: pip install -r requirements.txt" buttons {"OK"} default button "OK"'
+    exit 1
+fi
+
+# Use Terminal to run the app
+osascript << EOA
+tell application "Terminal"
+    activate
+    do script "cd '$PROJECT_DIR' && source .venv/bin/activate && python start_alfred.py; exit"
+end tell
+EOA
