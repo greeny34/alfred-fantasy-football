@@ -120,14 +120,25 @@ When working on this project, always check:
 - `templates/live_draft_board_broken2.html` - Identical to broken.html  
 - `templates/live_draft_board_working.html` - Simple working version (not sophisticated)
 
-### Before Making Changes
-1. Always create a timestamped backup first
-2. Test changes thoroughly before committing
-3. If something breaks, restore from `live_draft_board_MASTER_WORKING.html`
+### Lightweight Version Control Process
+1. **Before editing critical files**: Run `./backup_critical_file.sh <file_path>`
+   - Creates timestamped backup automatically
+   - Commits current state to git as safety measure
+2. **After completing changes**: Test functionality, then commit with clear message
+3. **Recovery**: If something breaks, restore from most recent backup or use git
+4. **Push frequently**: Daily or after significant changes
+
+### Critical Files (Always backup first)
+- `templates/live_draft_board.html` - Main draft board
+- `src/engines/draft_assistant_app.py` - Main server app
+- `src/servers/alfred_main_server.py` - Primary Flask server
+- Any file in `templates/` directory
 
 ## Recent Work
+- ✅ ORGANIZED codebase: Moved 100+ scattered files into logical src/ directory structure
+- ✅ IMPLEMENTED lightweight version control with automated backup script
 - ✅ RESTORED sophisticated draft board with all features (3-panel UI, dark theme, rankings badges)
 - ✅ Fixed JavaScript initialization error (async/await in setTimeout)
-- ✅ Created comprehensive backup strategy with multiple copies
+- ✅ Created comprehensive backup strategy with organized templates/backups/
 - ✅ Committed and pushed working version to GitHub
 - Previous: Sleeper integration debugging, Mock draft functionality, React dashboard development
