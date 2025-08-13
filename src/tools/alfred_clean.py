@@ -13,7 +13,7 @@ import webbrowser
 import signal
 import threading
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../../templates')
 
 # Database configuration
 DB_CONFIG = {

@@ -20,7 +20,7 @@ fi
 
 # Run the clean server
 echo "Launching ALFRED..."
-python3 alfred_clean.py
+python3 src/tools/alfred_clean.py
 
 # Keep terminal open if there's an error
 if [ $? -ne 0 ]; then
